@@ -1,0 +1,42 @@
+import { clubs, defaultLineup, squad, validLineup, type Career } from './model'
+import { positions, type Formation, type Match } from './types'
+export function player(id: string) { return squad.find(p => p.id === id)! }
+export function lineupOf(career: Career) { return validLineup(career.lineup) ? career.lineup : [...defaultLineup] }
+export function fit(id: string, position: string) {
+  const actual = player(id).position
+  if (actual === position) return 1
+  if ([['LD', 'MD', 'PD'], ['LE', 'ME', 'PE'], ['VOL', 'MC'], ['ATA', 'PD', 'PE']].some(group => group.includes(actual) && group.includes(position))) return .96
+  return .86
+}
+export function strength(lineup: string[], formation: Formation) {
+  return Math.round(lineup.reduce((sum, id, i) => sum + player(id).rating * fit(id, positions[formation][i]), 0) / 11)
+}
+export function swap(lineup: string[], slot: number, id: string): string[] {
+  if (!Number.isInteger(slot) || slot < 0 || slot > 10 || !squad.some(p => p.id === id)) return lineup
+  const next = [...lineup]
+  const previousSlot = next.indexOf(id)
+  if (previousSlot >= 0) next[previousSlot] = next[slot]
+  next[slot] = id
+  return validLineup(next) ? next : lineup
+}
+export function score(match: Match, cursor = match.cursor) {
+  const events = match.events.slice(0, cursor)
+  return { home: events.filter(e => e.goal && e.side === 'home').length, away: events.filter(e => e.goal && e.side === 'away').length }
+}
+export function simulate(career: Career, random = Math.random): Match {
+  const lineup = lineupOf(career)
+  const power = strength(lineup, career.formation)
+  const opponent = clubs.find(c => c.id !== career.clubId)!
+  const homeChance = Math.max(.3, Math.min(.7, .5 + (power - 70) / 100))
+  const events = Array.from({ length: 9 }, (_, index) => {
+    const side = random() < homeChance ? 'home' as const : 'away' as const
+    const goal = random() < .3
+    const id = lineup[1 + Math.min(9, Math.floor(random() * 10))]
+    const actor = side === 'home' ? player(id).name : opponent.name
+    return { minute: (index + 1) * 10, side, goal, text: goal ? `Gol! ${actor} aproveita a oportunidade e marca.` : `${actor} cria uma chance, mas a jogada termina sem gol.`, ...(side === 'home' ? { playerId: id } : {}) }
+  })
+  const home = events.filter(e => e.side === 'home' && e.goal).length
+  const away = events.filter(e => e.side === 'away' && e.goal).length
+  const ratings = lineup.map(id => ({ playerId: id, value: Math.round(Math.max(1, Math.min(10, 6 + random() * 1.2 + (home - away) * .2 + events.filter(e => e.playerId === id && e.goal).length * .7)) * 10) / 10 }))
+  return { opponent: opponent.id, lineup: [...lineup], formation: career.formation, strength: power, events, ratings, cursor: 0 }
+}

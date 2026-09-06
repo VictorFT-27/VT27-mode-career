@@ -1,18 +1,16 @@
-# Carreiras e próximos modos
+# Carreiras e mundo compartilhado
 
-O catálogo de modos usa identificadores estáveis: coach, player e director.
-Apenas coach pode criar uma carreira nesta versão. Dados de clubes e atletas
-são demonstrativos e ficam separados da composição visual em career/model.ts.
+- model.ts: clubes e atletas fictícios, carreira e migração de salvamento local.
+- types.ts: formações, eventos e registro de partida, sem dependência de React.
+- football.ts: escalação, adequação à posição, força e simulação injetável.
+- Lineup.tsx: prancheta e trocas antes da partida.
+- Friendly.tsx: pré-jogo, lances, placar, notas e avanço para o segundo dia.
 
-## Próximas etapas
+coach está ativo. player e director permanecem no catálogo, sem regras próprias.
+Eventos referenciam atletas por IDs estáveis. A partida guarda o time e a formação
+usados no início, permitindo reaproveitar desempenho e resultados no futuro modo
+jogador e na avaliação de elenco do dirigente.
 
-- Treinador: escalação individual, treinos, calendário e primeiro amistoso.
-- Jogador: perfil, posição, evolução individual e decisões de carreira.
-- Dirigente: orçamento, negociações e objetivos do clube.
-- Mundo compartilhado: clubes, atletas, calendário e resultados devem ter uma
-  única fonte de dados, consumida pelas regras de cada modo.
-
-Ainda não existem motores de simulação nem sistemas econômicos.
-A formação é uma preferência salva, sem efeitos em resultados.
-O salvamento v1 é local ao navegador/origem; previews diferentes podem ter saves
-separados. Uma futura migração para persistência remota deve preservar versões.
+Próximas etapas: treinos, fadiga, calendário e novas partidas; depois progressão
+individual (jogador) e economia/negociações (dirigente). Não duplicar o motor de
+partidas por modo. Nenhum desses sistemas futuros está implementado agora.

@@ -2,8 +2,8 @@
 
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
-elenco demonstrativo e formação tática. Carreira salva apenas neste navegador.
-Jogador e dirigente estão planejados. Não há simulação de partidas ou autenticação.
+elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
+Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação, treinos ou competições.
 
 ## Desenvolvimento local
 
@@ -16,6 +16,7 @@ npm run dev
 
 Comandos disponíveis:
 
+- `npm test`: valida escalação, simulação e migração/retomada de saves.
 - `npm run lint`: verifica o código com Oxlint.
 - `npm run typecheck`: verifica os tipos TypeScript.
 - `npm run build`: verifica os tipos e gera a versão de produção em `dist/`.
@@ -85,3 +86,23 @@ Cloudflare para validar mudanças antes de publicá-las em produção.
 
 Nenhuma variável de ambiente é necessária nesta versão. Nunca versione tokens ou
 credenciais. Variáveis com prefixo `VITE_` ficam públicas no código do navegador.
+
+## Primeira experiência jogável
+
+1. Crie ou continue uma carreira de treinador.
+2. Em Prancheta, escolha a formação, clique em uma posição e selecione o atleta.
+   São 11 titulares e 7 reservas. Goleiros só podem ocupar o gol.
+3. Abra Amistoso, revise o time e inicie a partida.
+4. Avance os nove lances ou veja o resultado final. Resultado e progresso ficam
+   salvos no início e a cada avanço, impedindo novo sorteio ao recarregar.
+5. Confira as notas e avance ao dia 02. O primeiro amistoso continua disponível
+   para consulta; novos jogos e treinos serão implementados em outra etapa.
+
+A força considera nível e adequação à posição. O motor cria nove oportunidades,
+com posse da chance ponderada pela força e conversão de 30%. É uma simulação
+inicial, não um modelo realista de futebol. Não existem substituições durante a
+partida. O esquema e os titulares ficam congelados no registro desse amistoso.
+
+Saves anteriores recebem automaticamente titulares e dia inicial. O armazenamento
+continua local à origem do navegador: outro endereço de preview pode ter outro
+save. Não há sincronização entre dispositivos.
