@@ -1,10 +1,10 @@
 import { overall } from './progression'
 import { leagueFixture } from './league'
 import { energy, preparation } from './season'
-import { allPlayers, clubs, defaultRoster, lineupForRoster, validLineup, type Career } from './model'
+import { allPlayers, clubs, defaultRosterFor, lineupForRoster, validLineup, type Career } from './model'
 import { positions, type Formation, type Match, leagueRounds } from './types'
 export function player(id: string) { return allPlayers.find(p => p.id === id)! }
-export function lineupOf(career: Career) { const roster = career.roster ?? defaultRoster; return validLineup(career.lineup) && career.lineup.every(id => roster.includes(id)) ? career.lineup : lineupForRoster(roster) }
+export function lineupOf(career: Career) { const roster = career.roster ?? defaultRosterFor(career.clubId); return validLineup(career.lineup) && career.lineup.every(id => roster.includes(id)) ? career.lineup : lineupForRoster(roster, career.clubId) }
 export function fit(id: string, position: string) {
   const actual = player(id).position
   if (actual === position) return 1
@@ -30,7 +30,7 @@ export function simulate(career: Career, random = Math.random): Match {
   const lineup = lineupOf(career)
   const power = strength(lineup, career.formation, career)
   const fixture = leagueFixture(career)
-  const opponents = clubs.slice(0, 3).filter(c => c.id !== career.clubId)
+  const opponents = clubs.filter(c => c.id !== career.clubId)
   const opponent = fixture ? clubs.find(c => c.id === fixture.opponent)! : opponents[Math.floor(((career.day ?? 1) - 1) / 3) % opponents.length]
   const homeChance = Math.max(.3, Math.min(.7, .5 + (power - 70) / 100))
   const events = Array.from({ length: 9 }, (_, index) => {

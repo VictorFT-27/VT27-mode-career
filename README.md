@@ -2,11 +2,25 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
+## Futebol brasileiro real (edição 10)
+
+O primeiro pacote de dados reais traz Flamengo, Palmeiras, Corinthians e São Paulo,
+cada um com 18 atletas vinculados ao próprio clube. O mercado também passa a usar
+nomes reais. Níveis, valores e salários são estimativas internas criadas para o
+equilíbrio do simulador e não representam dados oficiais.
+
+- Uma nova carreira recebe automaticamente o elenco do clube escolhido.
+- Saves do antigo universo fictício são convertidos para os clubes e atletas reais,
+  preservando treinador, calendário, evolução e histórico sempre que válido.
+- A Liga VT27 mantém o formato atual de quatro clubes e seis rodadas nesta etapa.
+- Os demais clubes brasileiros serão adicionados em novos pacotes de dados sem
+  misturar a base de jogadores com as regras do jogo.
+
 ## Mercado e contratos (edição 07)
 
 A área Mercado transforma o elenco em parte persistente da carreira. Cada clube
 começa com orçamento e limite salarial próprios. O treinador pode contratar entre
-oito atletas fictícios, vender reservas e acompanhar contratos e movimentações.
+oito atletas observados, vender reservas e acompanhar contratos e movimentações.
 
 - O elenco aceita de 16 a 23 atletas.
 - Uma contratação desconta o valor integral e adiciona o salário à folha.
@@ -17,8 +31,8 @@ oito atletas fictícios, vender reservas e acompanhar contratos e movimentaçõe
   usando 10% do valor estimado como custo.
 - Negociações ficam bloqueadas durante partidas em andamento.
 
-Valores, salários e nomes são fictícios. Esta é a base econômica inicial; receitas,
-propostas de outros clubes e negociação de valores entram em etapas posteriores.
+Valores e salários são estimativas do simulador. Esta é a base econômica inicial;
+receitas, propostas de outros clubes e negociação de valores entram em etapas posteriores.
 
 ## Diretoria e confiança (edição 08)
 
@@ -53,7 +67,7 @@ mostra a condição completa do elenco e ajuda o treinador a preparar substituto
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
-Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação; a Liga VT27 é a primeira competição oficial fictícia.
+Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação; a Liga VT27 é a primeira competição do protótipo.
 
 ## Desenvolvimento local
 
@@ -179,7 +193,7 @@ treino único, bloqueio de avanço e aplicação única de desgaste no fim da pa
 ## Liga VT27 (edição 04)
 
 Após a pré-temporada, abra Liga VT27 e escolha Entrar na Liga. O dia 8 é de
-preparação. São quatro clubes (incluindo Atlético do Vale), seis rodadas de ida e
+preparação. São quatro clubes reais, seis rodadas de ida e
 volta nos dias 9, 12, 15, 18, 21 e 24. A temporada chega à avaliação final no dia 25.
 
 - Vitória: 3 pontos; empate: 1 ponto.
@@ -189,7 +203,7 @@ volta nos dias 9, 12, 15, 18, 21 e 24. A temporada chega à avaliação final no
 - Os eventos usam home como referência ao time do usuário; a tabela converte
   corretamente esses gols para mandante/visitante conforme o calendário.
 - Mando de campo ainda não altera força ou probabilidade de vitória.
-- Objetivos: Porto Azul campeão; Aurora e Vale no top 2; União da Serra no top 3.
+- Objetivos: Flamengo campeão; Palmeiras e Corinthians no top 2; São Paulo no top 3.
 - A avaliação da diretoria é informativa; ainda não há demissão, economia,
   rebaixamento ou renovação automática de temporada.
 - O elenco, energia, preparação e histórico de amistosos são preservados.

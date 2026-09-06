@@ -40,4 +40,4 @@ export function standings(results: LeagueResult[]) {
   rows.forEach(row => { row.difference = row.goalsFor - row.goalsAgainst })
   return rows.sort((a, b) => b.points - a.points || b.wins - a.wins || b.difference - a.difference || b.goalsFor - a.goalsFor || a.name.localeCompare(b.name, 'pt-BR'))
 }
-export function boardTarget(id: string) { return id === 'porto' ? 1 : id === 'serra' ? 3 : 2 }
+export function boardTarget(id: string) { return id === 'flamengo' ? 1 : id === 'sao-paulo' ? 3 : 2 }

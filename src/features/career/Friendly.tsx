@@ -10,7 +10,7 @@ export function Friendly({ career, onChange, onLineup, onSchedule }: { career: C
   const club = clubs.find(c => c.id === career.clubId)!
   const match = career.match
   const fixture = leagueFixture(career)
-  const opponents = clubs.slice(0, 3).filter(c => c.id !== career.clubId)
+  const opponents = clubs.filter(c => c.id !== career.clubId)
   const opponent = match ? clubs.find(c => c.id === match.opponent)! : fixture ? clubs.find(c => c.id === fixture.opponent)! : opponents[Math.floor(((career.day ?? 1) - 1) / 3) % opponents.length]
   const total = match ? score(match) : { home: 0, away: 0 }
   const finished = !!match && match.cursor === match.events.length

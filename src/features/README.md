@@ -1,6 +1,7 @@
 # Carreiras e mundo compartilhado
 
-- model.ts: clubes e atletas fictícios, carreira e migração de salvamento local.
+- realData.ts: clubes, elencos reais e valores estimados pelo simulador.
+- model.ts: carreira, associação do elenco ao clube e migração do salvamento local.
 - types.ts: formações, eventos e registro de partida, sem dependência de React.
 - football.ts: escalação, adequação à posição, força e simulação injetável.
 - Lineup.tsx: prancheta e trocas antes da partida.

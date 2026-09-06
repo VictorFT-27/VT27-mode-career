@@ -1,11 +1,11 @@
-import { defaultLineup, rosterOf, type Career } from './model'
+import { defaultLineupFor, rosterOf, type Career } from './model'
 import type { Match, PlayerAvailability } from './types'
 
 const healthy = (): PlayerAvailability => ({ injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 })
 export function availabilityOf(career: Career) { return Object.fromEntries(rosterOf(career).map(player => [player.id, career.availability?.[player.id] ?? healthy()])) }
 export function conditionOf(career: Career, playerId: string) { return career.availability?.[playerId] ?? healthy() }
 export function unavailable(career: Career, playerId: string) { const state = conditionOf(career, playerId); return state.injuredMatches > 0 || state.suspensionMatches > 0 }
-export function unavailableLineup(career: Career) { return (career.lineup ?? defaultLineup).filter(id => unavailable(career, id)) }
+export function unavailableLineup(career: Career) { return (career.lineup ?? defaultLineupFor(career.clubId)).filter(id => unavailable(career, id)) }
 export function conditionLabel(career: Career, playerId: string) { const state = conditionOf(career, playerId); return state.injuredMatches ? `Lesionado · ${state.injuredMatches} ${state.injuredMatches === 1 ? 'jogo' : 'jogos'}` : state.suspensionMatches ? 'Suspenso · 1 jogo' : state.yellowCards ? `${state.yellowCards}/3 cartões` : 'Disponível' }
 export function resolveDiscipline(match: Match): Match {
   if (match.disciplineFinalized) return match

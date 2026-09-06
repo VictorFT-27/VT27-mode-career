@@ -13,12 +13,12 @@ export type Preparation = { energy: Record<string, number>; skill: number; fitne
 export const fixtureDays = [1, 4, 7]
 export type LeagueResult = { round: number; home: string; away: string; homeGoals: number; awayGoals: number }
 export const leagueRounds = [
-  [['aurora', 'vale'], ['porto', 'serra']],
-  [['serra', 'aurora'], ['vale', 'porto']],
-  [['aurora', 'porto'], ['serra', 'vale']],
-  [['vale', 'aurora'], ['serra', 'porto']],
-  [['aurora', 'serra'], ['porto', 'vale']],
-  [['porto', 'aurora'], ['vale', 'serra']],
+  [['flamengo', 'sao-paulo'], ['palmeiras', 'corinthians']],
+  [['corinthians', 'flamengo'], ['sao-paulo', 'palmeiras']],
+  [['flamengo', 'palmeiras'], ['corinthians', 'sao-paulo']],
+  [['sao-paulo', 'flamengo'], ['corinthians', 'palmeiras']],
+  [['flamengo', 'corinthians'], ['palmeiras', 'sao-paulo']],
+  [['palmeiras', 'flamengo'], ['sao-paulo', 'corinthians']],
 ]
 export const leagueDays = [9, 12, 15, 18, 21, 24]
 export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; match: Match }[]; gains: Record<string, number> }
