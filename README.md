@@ -1,5 +1,7 @@
 # VT27 Mode Career
 
+O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
+
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
@@ -168,3 +170,13 @@ dia 25 para confirmar a próxima temporada.
 Saves anteriores assumem temporada 1 e evolução zero. O formato continua usando a
 mesma chave local. Testes incluem duas temporadas completas, preservação do
 arquivo, bloqueio de transição antecipada e limites de evolução.
+
+## Comando durante a partida (edição 06)
+
+- Posturas defensiva, equilibrada e ofensiva afetam somente os próximos lances.
+- Até três substituições depois do primeiro lance e antes do apito final.
+- Goleiros só podem trocar com goleiros; um atleta substituído não retorna.
+- O próximo possível autor de uma jogada é escolhido entre quem está em campo.
+- Energia e notas consideram os minutos disputados por titulares e reservas.
+- Lances revelados permanecem imutáveis ao trocar a postura.
+- Partidas antigas continuam válidas com postura equilibrada e sem substituições.

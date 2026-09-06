@@ -31,7 +31,7 @@ export default function App() {
     setNotice(saveCareer(next) ? 'Carreira salva neste navegador.' : 'Não foi possível salvar neste navegador. Seu progresso ficará apenas nesta sessão.')
   }
   return <div className="app-shell">
-    <header className="topbar"><button className="brand" onClick={() => setView('modes')} aria-label="VT27 — início">VT<span>27</span><small>MODE CAREER</small></button><div className="top-meta"><span className="live-dot" /> {career?.leagueActive ? 'LIGA VT27' : 'PRÉ-TEMPORADA'} <span className="edition">EDIÇÃO 05</span></div></header>
+    <header className="topbar"><button className="brand" onClick={() => setView('modes')} aria-label="VT27 — início">VT<span>27</span><small>MODE CAREER</small></button><div className="top-meta"><span className="live-dot" /> {career?.leagueActive ? 'LIGA VT27' : 'PRÉ-TEMPORADA'} <span className="edition">EDIÇÃO 06</span></div></header>
     {view === 'modes' && <main className="selection">
       <div className="intro"><p className="eyebrow">SEU JOGO. SUA HISTÓRIA.</p><h1 tabIndex={-1} ref={heading}>O futebol tem muitos caminhos.<br /><em>Qual vai ser o seu?</em></h1><p>Três maneiras de viver o mesmo universo. Escolha de onde começa a sua história.</p></div>
       {career && <button className="resume" onClick={() => { setView('office'); setTab('overview') }}><span>CONTINUAR CARREIRA <strong>{career.name} · {clubs.find(c => c.id === career.clubId)?.name}</strong></span><span aria-hidden="true">↗</span></button>}

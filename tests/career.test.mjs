@@ -7,14 +7,15 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, types, progression
+let model, football, season, league, types, progression, matchEngine
 try {
-  for (const name of ['types', 'model', 'league', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'model', 'league', 'matchEngine', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
   }
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
+  matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -283,4 +284,54 @@ test('legacy saves default to first season and corrupt archives do not discard t
   assert.deepEqual(loaded.archives, [])
   assert.equal(loaded.playerGrowth.p1, 10)
   assert.equal(loaded.playerGrowth.p2, 0)
+})
+
+test('mentality changes only future events and produces the documented risk tradeoff', () => {
+  const base = football.simulate(career, () => .5)
+  base.events[0] = { ...base.events[0], sideRoll: .45, goalRoll: .25, playerRoll: .2 }
+  base.events[1] = { ...base.events[1], sideRoll: .55, goalRoll: .35, playerRoll: .2 }
+  let attacking = matchEngine.setMentality({ ...career, match: structuredClone(base) }, 'attacking')
+  attacking = season.progressMatch(attacking, 1)
+  assert.equal(attacking.match.events[0].side, 'home')
+  assert.equal(attacking.match.events[0].goal, true)
+  const revealed = structuredClone(attacking.match.events[0])
+  attacking = matchEngine.setMentality(attacking, 'defensive')
+  attacking = season.progressMatch(attacking, 2)
+  assert.deepEqual(attacking.match.events[0], revealed)
+  assert.equal(attacking.match.events[1].side, 'away')
+  assert.equal(attacking.match.events[1].goal, false)
+})
+
+test('three legal substitutions update future scorers and reject invalid changes', () => {
+  let current = { ...career, match: { ...football.simulate(career, () => .2), cursor: 1 } }
+  const unchanged = matchEngine.substitute(current, 'p1', 'p13')
+  assert.equal(unchanged, current)
+  current = matchEngine.substitute(current, 'p10', 'p17')
+  assert.equal(current.match.lineup.includes('p17'), true)
+  assert.equal(current.match.lineup.includes('p10'), false)
+  assert.equal(current.match.ratings.length, 12)
+  assert.equal(matchEngine.substitute(current, 'p17', 'p10'), current)
+  current.match.events[1] = { ...current.match.events[1], sideRoll: 0, goalRoll: 0, playerRoll: .85 }
+  current = season.progressMatch(current, 2)
+  assert.equal(current.match.events[1].playerId, 'p17')
+  current = matchEngine.substitute(current, 'p9', 'p16')
+  current = matchEngine.substitute(current, 'p8', 'p15')
+  assert.equal(current.match.substitutions.length, 3)
+  assert.equal(matchEngine.substitute(current, 'p7', 'p14'), current)
+  assert.equal(new Set(current.match.lineup).size, 11)
+})
+
+test('fatigue and appearances follow proportional minutes for substitutes', () => {
+  let current = { ...career, day: 9, leagueActive: true, match: { ...football.simulate({ ...career, day: 9, leagueActive: true }, () => .2), cursor: 4 } }
+  current = matchEngine.substitute(current, 'p10', 'p17')
+  assert.equal(matchEngine.minutesPlayed(current.match, 'p10'), 40)
+  assert.equal(matchEngine.minutesPlayed(current.match, 'p17'), 50)
+  current = season.progressMatch(current, 9)
+  assert.ok(season.energy(current, 'p10') > season.energy(current, 'p17'))
+  assert.ok(season.energy(current, 'p10') < 100)
+  assert.equal(current.match.ratings.length, 12)
+  assert.equal(current.match.ratingsFinalized, true)
+  const stats = progression.playerStats(current)
+  assert.equal(stats.find(player => player.id === 'p10').appearances, 1)
+  assert.equal(stats.find(player => player.id === 'p17').appearances, 1)
 })

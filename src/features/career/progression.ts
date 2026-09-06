@@ -5,7 +5,7 @@ export function playerStats(career: Career) {
   const matches = [...(career.history ?? []).filter(h => leagueDays.includes(h.day))]
   if (career.match?.cursor === 9 && leagueDays.includes(career.day ?? 1) && !matches.some(h => h.day === career.day)) matches.push({ day: career.day!, match: career.match })
   return squad.map(p => {
-    const played = matches.filter(h => h.match.lineup.includes(p.id))
+    const played = matches.filter(h => h.match.ratings.some(r => r.playerId === p.id))
     const notes = played.flatMap(h => h.match.ratings.filter(r => r.playerId === p.id).map(r => r.value))
     const average = notes.length ? notes.reduce((sum, n) => sum + Math.round(n * 10), 0) / (notes.length * 10) : null
     const growth = career.playerGrowth?.[p.id] ?? 0

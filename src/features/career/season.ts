@@ -1,4 +1,5 @@
 import { commitRound } from './league'
+import { finalizeRatings, minutesPlayed, resolveEvent } from './matchEngine'
 import { squad, type Career } from './model'
 import { fixtureDays, leagueDays, type Preparation, type TrainingKind } from './types'
 export const sessions: { kind: TrainingKind; name: string; subtitle: string; effect: string }[] = [
@@ -28,9 +29,13 @@ export function advanceDay(career: Career): Career {
 }
 export function progressMatch(career: Career, cursor: number): Career {
   if (!career.match || career.match.cursor === 9) return career
-  const next = Math.max(career.match.cursor, Math.min(9, Math.floor(cursor)))
+  const match = career.match
+  const next = Math.max(match.cursor, Math.min(9, Math.floor(cursor)))
   if (!Number.isFinite(next)) return career
+  const events = match.events.map((event, index) => index >= match.cursor && index < next ? resolveEvent(match, index) : event)
+  let resolvedMatch = { ...match, events }
+  if (next === 9) resolvedMatch = finalizeRatings(resolvedMatch)
   const prep = preparation(career)
   const fatigue = 24 - prep.fitness * 2
-  return commitRound({ ...career, seasonVersion: 3, match: { ...career.match, cursor: next }, preparation: next === 9 ? { ...prep, energy: Object.fromEntries(squad.map(p => [p.id, Math.max(0, energy(career, p.id) - (career.match!.lineup.includes(p.id) ? fatigue : 0))])) } : prep })
+  return commitRound({ ...career, seasonVersion: 3, match: { ...resolvedMatch, cursor: next }, preparation: next === 9 ? { ...prep, energy: Object.fromEntries(squad.map(p => [p.id, Math.max(0, energy(career, p.id) - fatigue * minutesPlayed(resolvedMatch, p.id) / 90)])) } : prep })
 }

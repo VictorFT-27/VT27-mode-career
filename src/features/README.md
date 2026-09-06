@@ -28,3 +28,8 @@ progression.ts deriva estatísticas dos eventos e notas das partidas oficiais,
 aplica evolução permanente e arquiva a temporada. SeasonReview.tsx apresenta o
 relatório e a confirmação para iniciar outra temporada. A base individual pode
 ser reutilizada futuramente pelo modo jogador, sem duplicar as regras de partida.
+
+matchEngine.ts resolve os próximos lances conforme a postura ativa, controla até
+três substituições, calcula minutos disputados e finaliza as notas. O componente
+MatchManagement.tsx expõe essas decisões durante a partida com os efeitos
+explicados. Lances já revelados permanecem imutáveis.
