@@ -2,6 +2,24 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
+## Mercado e contratos (edição 07)
+
+A área Mercado transforma o elenco em parte persistente da carreira. Cada clube
+começa com orçamento e limite salarial próprios. O treinador pode contratar entre
+oito atletas fictícios, vender reservas e acompanhar contratos e movimentações.
+
+- O elenco aceita de 16 a 23 atletas.
+- Uma contratação desconta o valor integral e adiciona o salário à folha.
+- Uma venda rende 85% do valor estimado; titulares precisam ir ao banco primeiro.
+- Contratos novos duram três temporadas.
+- Ao iniciar outra temporada, todos os contratos perdem um ano.
+- Um contrato com uma temporada restante pode ser renovado por três temporadas,
+  usando 10% do valor estimado como custo.
+- Negociações ficam bloqueadas durante partidas em andamento.
+
+Valores, salários e nomes são fictícios. Esta é a base econômica inicial; receitas,
+propostas de outros clubes e negociação de valores entram em etapas posteriores.
+
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.

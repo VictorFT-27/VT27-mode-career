@@ -1,10 +1,10 @@
 import { overall } from './progression'
 import { leagueFixture } from './league'
 import { energy, preparation } from './season'
-import { clubs, defaultLineup, squad, validLineup, type Career } from './model'
+import { allPlayers, clubs, defaultRoster, lineupForRoster, validLineup, type Career } from './model'
 import { positions, type Formation, type Match, leagueRounds } from './types'
-export function player(id: string) { return squad.find(p => p.id === id)! }
-export function lineupOf(career: Career) { return validLineup(career.lineup) ? career.lineup : [...defaultLineup] }
+export function player(id: string) { return allPlayers.find(p => p.id === id)! }
+export function lineupOf(career: Career) { const roster = career.roster ?? defaultRoster; return validLineup(career.lineup) && career.lineup.every(id => roster.includes(id)) ? career.lineup : lineupForRoster(roster) }
 export function fit(id: string, position: string) {
   const actual = player(id).position
   if (actual === position) return 1
@@ -15,7 +15,7 @@ export function strength(lineup: string[], formation: Formation, career?: Career
   return Math.round(lineup.reduce((sum, id, i) => sum + ((career ? overall(career, id) : player(id).rating) + (career ? preparation(career).skill : 0)) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + (career ? preparation(career).cohesion : 0))
 }
 export function swap(lineup: string[], slot: number, id: string): string[] {
-  if (!Number.isInteger(slot) || slot < 0 || slot > 10 || !squad.some(p => p.id === id)) return lineup
+  if (!Number.isInteger(slot) || slot < 0 || slot > 10 || !allPlayers.some(p => p.id === id)) return lineup
   const next = [...lineup]
   const previousSlot = next.indexOf(id)
   if (previousSlot >= 0) next[previousSlot] = next[slot]

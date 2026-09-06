@@ -7,15 +7,16 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, types, progression, matchEngine
+let model, football, season, league, types, progression, matchEngine, transfers
 try {
-  for (const name of ['types', 'model', 'league', 'matchEngine', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'model', 'league', 'matchEngine', 'season', 'transfers', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
   }
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
   matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
+  transfers = await import(pathToFileURL(join(directory, 'transfers.mjs')))
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -70,6 +71,9 @@ test('v1 career migrates without losing identity and rejects duplicate starters'
   assert.equal(model.loadCareer().name, 'Victor')
   assert.deepEqual(model.loadCareer().lineup, model.defaultLineup)
   assert.equal(model.loadCareer().day, 1)
+  assert.deepEqual(model.loadCareer().roster, model.defaultRoster)
+  assert.equal(Object.keys(model.loadCareer().contracts).length, 18)
+  assert.equal(model.loadCareer().finances.budget, model.defaultFinances.aurora.budget)
   saved = JSON.stringify({ ...career, lineup: Array(11).fill('p1') })
   assert.deepEqual(model.loadCareer().lineup, model.defaultLineup)
 })
@@ -334,4 +338,53 @@ test('fatigue and appearances follow proportional minutes for substitutes', () =
   const stats = progression.playerStats(current)
   assert.equal(stats.find(player => player.id === 'p10').appearances, 1)
   assert.equal(stats.find(player => player.id === 'p17').appearances, 1)
+})
+
+test('market purchase changes budget, wage bill, roster and persists through reload', () => {
+  const base = { ...career, roster: [...model.defaultRoster], contracts: model.defaultContracts(), finances: { budget: 22000, wageLimit: 1350 } }
+  const wages = transfers.wageUsed(base)
+  const bought = transfers.buyPlayer(base, 'm1')
+  assert.notEqual(bought, base)
+  assert.equal(bought.roster.length, 19)
+  assert.ok(bought.roster.includes('m1'))
+  assert.equal(bought.finances.budget, 14800)
+  assert.equal(transfers.wageUsed(bought), wages + model.marketPlayers[0].wage)
+  assert.equal(bought.contracts.m1.seasons, 3)
+  assert.equal(season.energy(bought, 'm1'), 100)
+  model.saveCareer(bought)
+  const loaded = model.loadCareer()
+  assert.ok(loaded.roster.includes('m1'))
+  assert.equal(loaded.finances.budget, 14800)
+  assert.equal(loaded.transfers.at(-1).kind, 'buy')
+})
+
+test('market respects squad, budget, wage and live-match safeguards', () => {
+  const base = { ...career, roster: [...model.defaultRoster], contracts: model.defaultContracts(), finances: { budget: 100000, wageLimit: 5000 }, lineup: [...model.defaultLineup] }
+  let reduced = transfers.sellPlayer(base, 'p12')
+  reduced = transfers.sellPlayer(reduced, 'p13')
+  assert.equal(reduced.roster.length, 16)
+  assert.equal(transfers.sellPlayer(reduced, 'p14'), reduced)
+  assert.equal(transfers.sellPlayer(base, 'p1'), base)
+  assert.equal(transfers.sellPlayer({ ...base, lineup: undefined }, 'p1').roster.length, 18)
+  assert.equal(transfers.buyPlayer({ ...base, finances: { budget: 1, wageLimit: 5000 } }, 'm1').roster.length, 18)
+  assert.equal(transfers.buyPlayer({ ...base, finances: { budget: 100000, wageLimit: transfers.wageUsed(base) } }, 'm1').roster.length, 18)
+  let full = base
+  for (const player of model.marketPlayers.slice(0, 5)) full = transfers.buyPlayer(full, player.id)
+  assert.equal(full.roster.length, 23)
+  assert.equal(transfers.buyPlayer(full, 'm6'), full)
+  const playing = { ...base, match: football.simulate(base, () => .2) }
+  assert.equal(transfers.buyPlayer(playing, 'm1'), playing)
+})
+
+test('sales return 85 percent and expiring contracts can be renewed', () => {
+  const base = { ...career, roster: [...model.defaultRoster], contracts: model.defaultContracts(), finances: { budget: 22000, wageLimit: 1350 }, lineup: [...model.defaultLineup] }
+  const value = base.contracts.p12.value
+  const sold = transfers.sellPlayer(base, 'p12')
+  assert.equal(sold.finances.budget, 22000 + Math.round(value * .85))
+  assert.ok(!sold.roster.includes('p12'))
+  const expiring = { ...base, contracts: { ...base.contracts, p12: { ...base.contracts.p12, seasons: 1 } } }
+  const renewed = transfers.renewContract(expiring, 'p12')
+  assert.equal(renewed.contracts.p12.seasons, 3)
+  assert.equal(renewed.finances.budget, 22000 - Math.round(value * .1))
+  assert.equal(transfers.renewContract(renewed, 'p12'), renewed)
 })

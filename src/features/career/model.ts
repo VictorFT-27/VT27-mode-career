@@ -1,7 +1,7 @@
-import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, type LeagueResult, type SeasonArchive } from './types'
+import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, type LeagueResult, type SeasonArchive, type Contract, type Finances, type TransferRecord } from './types'
 export type CareerMode = 'coach' | 'player' | 'director'
 export type Club = { id: string; name: string; initials: string; city: string; color: string; reputation: string; objective: string; description: string }
-export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; day?: number; match?: Match; seasonVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[] }
+export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; roster?: string[]; contracts?: Record<string, Contract>; finances?: Finances; transfers?: TransferRecord[]; day?: number; match?: Match; seasonVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[] }
 export const modes: { id: CareerMode; title: string; subtitle: string; number: string; description: string; available: boolean }[] = [
   { id: 'coach', title: 'Treinador', subtitle: 'À beira do campo', number: '01', description: 'Dê identidade ao time. Escolha seu clube, organize o elenco e prepare sua estratégia.', available: true },
   { id: 'player', title: 'Jogador', subtitle: 'Dentro das quatro linhas', number: '02', description: 'Construa sua trajetória em campo. Treinos, evolução e escolhas que definem uma carreira.', available: false },
@@ -34,10 +34,28 @@ export const squad = [...initialPlayers,
   { name: 'Samuel Moraes', position: 'MC', age: 21, rating: 68 },
   { name: 'Eduardo Freitas', position: 'ATA', age: 24, rating: 72 },
   { name: 'Leonardo Castro', position: 'PE', age: 19, rating: 67 },
-].map((player, i) => ({ ...player, id: `p${i + 1}` }))
+].map((player, i) => ({ ...player, id: `p${i + 1}`, value: Math.max(900, (player.rating - 62) * 650 - Math.max(0, player.age - 27) * 180), wage: Math.max(18, (player.rating - 58) * 4) }))
+export const marketPlayers = [
+  { id: 'm1', name: 'Murilo Braga', position: 'GOL', age: 25, rating: 74, value: 7200, wage: 72 },
+  { id: 'm2', name: 'Igor Peixoto', position: 'ZAG', age: 22, rating: 72, value: 6100, wage: 58 },
+  { id: 'm3', name: 'Renan Teles', position: 'LE', age: 24, rating: 71, value: 4800, wage: 49 },
+  { id: 'm4', name: 'Thiago Luz', position: 'VOL', age: 26, rating: 73, value: 6500, wage: 65 },
+  { id: 'm5', name: 'Nicolas Prado', position: 'MC', age: 20, rating: 70, value: 5200, wage: 45 },
+  { id: 'm6', name: 'Kauã Ribeiro', position: 'PD', age: 21, rating: 73, value: 7600, wage: 68 },
+  { id: 'm7', name: 'Wesley Campos', position: 'ATA', age: 28, rating: 76, value: 8900, wage: 92 },
+  { id: 'm8', name: 'Luan Farias', position: 'PE', age: 19, rating: 69, value: 4300, wage: 38 },
+]
+export const allPlayers = [...squad, ...marketPlayers]
 export const defaultLineup = squad.slice(0, 11).map(player => player.id)
+export const defaultRoster = squad.map(player => player.id)
+export const defaultFinances: Record<string, Finances> = {
+  aurora: { budget: 22000, wageLimit: 1350 }, porto: { budget: 30000, wageLimit: 1500 }, serra: { budget: 18000, wageLimit: 1250 }, vale: { budget: 25000, wageLimit: 1400 },
+}
+export function defaultContracts(): Record<string, Contract> { return Object.fromEntries(squad.map(player => [player.id, { seasons: 2, wage: player.wage, value: player.value }])) }
+export function rosterOf(career: Pick<Career, 'roster'>) { return allPlayers.filter(player => (career.roster ?? defaultRoster).includes(player.id)) }
+export function lineupForRoster(roster: string[]) { const keeper = roster.find(id => allPlayers.find(player => player.id === id)?.position === 'GOL'); const field = roster.filter(id => allPlayers.find(player => player.id === id)?.position !== 'GOL').slice(0, 10); return keeper && field.length === 10 ? [keeper, ...field] : [...defaultLineup] }
 export function validLineup(value: unknown): value is string[] {
-  return Array.isArray(value) && value.length === 11 && new Set(value).size === 11 && value.every(id => squad.some(p => p.id === id)) && squad.find(p => p.id === value[0])?.position === 'GOL' && value.slice(1).every(id => squad.find(p => p.id === id)?.position !== 'GOL')
+  return Array.isArray(value) && value.length === 11 && new Set(value).size === 11 && value.every(id => allPlayers.some(p => p.id === id)) && allPlayers.find(p => p.id === value[0])?.position === 'GOL' && value.slice(1).every(id => allPlayers.find(p => p.id === id)?.position !== 'GOL')
 }
 export function validLeagueResult(value: unknown): value is LeagueResult {
   if (!value || typeof value !== 'object') return false
@@ -48,14 +66,14 @@ function validMatch(value: unknown): value is Match {
   if (!value || typeof value !== 'object') return false
   const m = value as Match
   const starting = m.startingLineup === undefined || validLineup(m.startingLineup)
-  const substitutions = m.substitutions === undefined || (Array.isArray(m.substitutions) && m.substitutions.length <= 3 && m.substitutions.every(s => s && Number.isInteger(s.minute) && s.minute >= 0 && s.minute <= 80 && squad.some(p => p.id === s.outId) && squad.some(p => p.id === s.inId) && s.outId !== s.inId))
+  const substitutions = m.substitutions === undefined || (Array.isArray(m.substitutions) && m.substitutions.length <= 3 && m.substitutions.every(s => s && Number.isInteger(s.minute) && s.minute >= 0 && s.minute <= 80 && allPlayers.some(p => p.id === s.outId) && allPlayers.some(p => p.id === s.inId) && s.outId !== s.inId))
   const participants = new Set([...(m.startingLineup ?? m.lineup), ...(m.substitutions ?? []).map(s => s.inId)])
   return clubs.some(c => c.id === m.opponent) && validLineup(m.lineup) && starting && substitutions && (m.mentality === undefined || ['defensive', 'balanced', 'attacking'].includes(m.mentality)) && (m.ratingsFinalized === undefined || typeof m.ratingsFinalized === 'boolean') && Object.hasOwn(positions, m.formation) && Number.isFinite(m.strength) && m.strength >= 0 && m.strength <= 100 && Number.isInteger(m.cursor) && m.cursor >= 0 && m.cursor <= 9 && Array.isArray(m.events) && m.events.length === 9 && m.events.every((e, i) => e && e.minute === (i + 1) * 10 && ['home', 'away'].includes(e.side) && typeof e.goal === 'boolean' && typeof e.text === 'string' && e.text.length < 250 && (e.playerId === undefined || participants.has(e.playerId)) && [e.sideRoll, e.goalRoll, e.playerRoll].every(n => n === undefined || (typeof n === 'number' && n >= 0 && n <= 1))) && Array.isArray(m.ratings) && m.ratings.length >= 11 && m.ratings.length <= 14 && m.ratings.every(r => r && typeof r === 'object') && new Set(m.ratings.map(r => r.playerId)).size === m.ratings.length && m.ratings.every(r => participants.has(r.playerId) && Number.isFinite(r.value) && r.value >= 1 && r.value <= 10)
 }
 function validArchive(value: unknown): value is SeasonArchive {
   if (!value || typeof value !== 'object') return false
   const a = value as SeasonArchive
-  return Number.isSafeInteger(a.number) && a.number >= 1 && clubs.some(c => c.id === a.clubId) && Array.isArray(a.results) && a.results.length === 12 && a.results.every(validLeagueResult) && new Set(a.results.map(r => r.round + ':' + r.home)).size === 12 && Array.isArray(a.matches) && a.matches.length === 9 && a.matches.every(h => h && [...fixtureDays, ...leagueDays].includes(h.day) && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== a.clubId) && new Set(a.matches.map(h => h.day)).size === 9 && !!a.gains && typeof a.gains === 'object' && squad.every(p => Number.isInteger(a.gains[p.id]) && a.gains[p.id] >= 0 && a.gains[p.id] <= 2)
+  return Number.isSafeInteger(a.number) && a.number >= 1 && clubs.some(c => c.id === a.clubId) && Array.isArray(a.results) && a.results.length === 12 && a.results.every(validLeagueResult) && new Set(a.results.map(r => r.round + ':' + r.home)).size === 12 && Array.isArray(a.matches) && a.matches.length === 9 && a.matches.every(h => h && [...fixtureDays, ...leagueDays].includes(h.day) && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== a.clubId) && new Set(a.matches.map(h => h.day)).size === 9 && !!a.gains && typeof a.gains === 'object' && Object.keys(a.gains).length >= 11 && Object.entries(a.gains).every(([id, gain]) => allPlayers.some(p => p.id === id) && Number.isInteger(gain) && gain >= 0 && gain <= 2)
 }
 const key = 'vt27.career.v1'
 export function loadCareer(): Career | null {
@@ -78,11 +96,18 @@ export function loadCareer(): Career | null {
     const bounded = (n: unknown, max: number) => typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0
     const archives = Array.isArray(c.archives) ? c.archives.filter(validArchive).filter((a, i, all) => all.findIndex(item => item.number === a.number) === i).sort((a, b) => a.number - b.number) : []
     const seasonNumber = Math.max(1, Number.isSafeInteger(c.seasonNumber) && c.seasonNumber! > 0 ? c.seasonNumber! : 1, ...archives.map(a => a.number + 1))
-    const playerGrowth = Object.fromEntries(squad.map(p => [p.id, Math.floor(bounded(c.playerGrowth?.[p.id], 10))]))
+    const roster = Array.isArray(c.roster) ? c.roster.filter((id, i, ids) => typeof id === 'string' && allPlayers.some(p => p.id === id) && ids.indexOf(id) === i) : [...defaultRoster]
+    const safeRoster = roster.length >= 16 && roster.length <= 23 && roster.some(id => allPlayers.find(p => p.id === id)?.position === 'GOL') ? roster : [...defaultRoster]
+    const contracts = Object.fromEntries(safeRoster.map(id => { const player = allPlayers.find(p => p.id === id)!; const raw = c.contracts?.[id]; return [id, { seasons: Number.isInteger(raw?.seasons) && raw!.seasons >= 1 && raw!.seasons <= 5 ? raw!.seasons : 2, wage: Number.isFinite(raw?.wage) && raw!.wage > 0 ? Math.round(raw!.wage) : player.wage, value: Number.isFinite(raw?.value) && raw!.value > 0 ? Math.round(raw!.value) : player.value }] }))
+    const baseFinance = defaultFinances[career.clubId]
+    const finances = { budget: typeof c.finances?.budget === 'number' && Number.isFinite(c.finances.budget) ? Math.round(bounded(c.finances.budget, 100000)) : baseFinance.budget, wageLimit: typeof c.finances?.wageLimit === 'number' && Number.isFinite(c.finances.wageLimit) ? Math.max(500, Math.round(bounded(c.finances.wageLimit, 5000))) : baseFinance.wageLimit }
+    const transfers = Array.isArray(c.transfers) ? c.transfers.filter(t => t && Number.isInteger(t.season) && t.season >= 1 && allPlayers.some(p => p.id === t.playerId) && ['buy', 'sell', 'renew'].includes(t.kind) && Number.isFinite(t.amount) && t.amount >= 0).slice(-100) : []
+    const playerGrowth = Object.fromEntries(allPlayers.map(p => [p.id, Math.floor(bounded(c.playerGrowth?.[p.id], 10))]))
     const prep = c.preparation
-    const energy = Object.fromEntries(squad.map(p => [p.id, typeof prep?.energy?.[p.id] === 'number' ? bounded(prep.energy[p.id], 100) : 100]))
+    const energy = Object.fromEntries(safeRoster.map(id => [id, typeof prep?.energy?.[id] === 'number' ? bounded(prep.energy[id], 100) : 100]))
     const sessions = Array.isArray(prep?.sessions) ? prep.sessions.filter(s => s && (Number.isInteger(s.day) && s.day >= 2 && s.day <= 23 && !calendar.includes(s.day)) && s.day <= day && ['physical', 'technical', 'tactical', 'recovery'].includes(s.kind)).filter((s, i, all) => all.findIndex(item => item.day === s.day) === i) : []
-    return { ...career, seasonNumber, playerGrowth, archives, seasonVersion: 3, lineup: validLineup(c.lineup) ? c.lineup : [...defaultLineup], day, match, history, leagueActive: active, leagueResults: active && Array.isArray(c.leagueResults) ? c.leagueResults.filter(r => validLeagueResult(r) && (leagueDays[r.round - 1] < day || (leagueDays[r.round - 1] === day && match?.cursor === 9))).filter((r, i, all) => all.findIndex(item => item.round === r.round && item.home === r.home) === i) : [], preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
+    const lineup = validLineup(c.lineup) && c.lineup.every(id => safeRoster.includes(id)) ? c.lineup : lineupForRoster(safeRoster)
+    return { ...career, roster: safeRoster, contracts, finances, transfers, seasonNumber, playerGrowth, archives, seasonVersion: 3, lineup, day, match, history, leagueActive: active, leagueResults: active && Array.isArray(c.leagueResults) ? c.leagueResults.filter(r => validLeagueResult(r) && (leagueDays[r.round - 1] < day || (leagueDays[r.round - 1] === day && match?.cursor === 9))).filter((r, i, all) => all.findIndex(item => item.round === r.round && item.home === r.home) === i) : [], preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
   } catch { return null }
 }
 export function saveCareer(career: Career): boolean {

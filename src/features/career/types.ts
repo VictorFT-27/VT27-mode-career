@@ -22,3 +22,6 @@ export const leagueRounds = [
 ]
 export const leagueDays = [9, 12, 15, 18, 21, 24]
 export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; match: Match }[]; gains: Record<string, number> }
+export type Contract = { seasons: number; wage: number; value: number }
+export type Finances = { budget: number; wageLimit: number }
+export type TransferRecord = { season: number; playerId: string; kind: 'buy' | 'sell' | 'renew'; amount: number }

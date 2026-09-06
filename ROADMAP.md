@@ -15,20 +15,20 @@ Este documento mantém o escopo do projeto visível. Cada etapa entra primeiro n
 - Pré-temporada de sete dias.
 - Liga VT27, tabela, rodadas e objetivo da diretoria.
 - Relatório, evolução individual, arquivo e novas temporadas.
+- Comando de partida, três mentalidades e até três substituições.
+- Mercado inicial, orçamento, folha salarial, vendas e contratos.
 
 ## Em desenvolvimento
 
-- Comando durante a partida: postura defensiva, equilibrada ou ofensiva.
-- Até três substituições com desgaste proporcional aos minutos.
-- Resultado e notas respondendo às decisões tomadas durante o jogo.
+- Equilíbrio dos valores, salários e decisões do mercado.
+- Integração da economia com metas e confiança da diretoria.
 
 ## Próximas etapas do modo treinador
 
-1. Mercado, propostas e contratos, com orçamento simples.
-2. Objetivos, confiança da diretoria e risco de demissão.
-3. Lesões, suspensão e profundidade real do elenco.
-4. Competições adicionais e calendário de temporada completa.
-5. Estatísticas, recordes e conquistas da carreira.
+1. Objetivos, confiança da diretoria e risco de demissão.
+2. Lesões, suspensão e profundidade real do elenco.
+3. Competições adicionais e calendário de temporada completa.
+4. Estatísticas, recordes e conquistas da carreira.
 
 ## Sistemas compartilhados para os outros modos
 

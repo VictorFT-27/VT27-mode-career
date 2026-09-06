@@ -33,3 +33,8 @@ matchEngine.ts resolve os próximos lances conforme a postura ativa, controla at
 três substituições, calcula minutos disputados e finaliza as notas. O componente
 MatchManagement.tsx expõe essas decisões durante a partida com os efeitos
 explicados. Lances já revelados permanecem imutáveis.
+
+transfers.ts concentra orçamento, salários, contratos, compras, vendas e
+renovações. Market.tsx apresenta a central de negociações. O elenco salvo na
+carreira alimenta escalação, treinos, partidas e evolução, permitindo que os
+mesmos sistemas financeiros sejam reutilizados no futuro modo dirigente.

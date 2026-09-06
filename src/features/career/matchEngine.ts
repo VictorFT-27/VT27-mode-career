@@ -1,4 +1,4 @@
-import { clubs, squad, type Career } from './model'
+import { allPlayers, clubs, type Career } from './model'
 import { type Match, type MatchEvent, type Mentality } from './types'
 
 const plans: Record<Mentality, { chance: number; ownGoal: number; rivalGoal: number }> = {
@@ -17,7 +17,7 @@ export function resolveEvent(match: Match, index: number): MatchEvent {
   const goal = existing.goalRoll < goalChance
   const id = match.lineup[1 + Math.min(9, Math.floor(existing.playerRoll * 10))]
   const opponent = clubs.find(club => club.id === match.opponent)!
-  const actor = side === 'home' ? squad.find(candidate => candidate.id === id)!.name : opponent.name
+  const actor = side === 'home' ? allPlayers.find(candidate => candidate.id === id)!.name : opponent.name
   return { ...existing, side, goal, text: goal ? `Gol! ${actor} aproveita a oportunidade e marca.` : `${actor} cria uma chance, mas a jogada termina sem gol.`, ...(side === 'home' ? { playerId: id } : { playerId: undefined }) }
 }
 
@@ -30,7 +30,7 @@ export function substitute(career: Career, outId: string, inId: string): Career 
   const match = career.match
   if (!match || match.cursor === 0 || match.cursor === 9 || (match.substitutions?.length ?? 0) >= 3 || !match.lineup.includes(outId) || match.lineup.includes(inId) || match.substitutions?.some(change => change.outId === inId)) return career
   const outIndex = match.lineup.indexOf(outId)
-  const incoming = squad.find(candidate => candidate.id === inId)
+  const incoming = allPlayers.find(candidate => candidate.id === inId)
   if (!incoming || (outIndex === 0) !== (incoming.position === 'GOL')) return career
   const lineup = [...match.lineup]
   lineup[outIndex] = inId
