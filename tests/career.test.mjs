@@ -7,14 +7,15 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football
+let model, football, season
 try {
-  for (const name of ['types', 'model', 'football']) {
+  for (const name of ['types', 'model', 'season', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
   }
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
+  season = await import(pathToFileURL(join(directory, 'season.mjs')))
   football = await import(pathToFileURL(join(directory, 'football.mjs')))
 } finally { await rm(directory, { recursive: true, force: true }) }
 const career = { mode: 'coach', name: 'Victor', clubId: 'aurora', formation: '4-3-3' }
@@ -73,10 +74,10 @@ test('match and cursor survive reload, and reviewing does not reroll result', ()
   assert.equal(model.saveCareer({ ...career, match }), true)
   assert.deepEqual(model.loadCareer().match, match)
   const loaded = model.loadCareer()
-  loaded.match.cursor = 9; loaded.day = 2
-  model.saveCareer(loaded)
+  loaded.match.cursor = 9
+  model.saveCareer(season.advanceDay(loaded))
   assert.equal(model.loadCareer().day, 2)
-  assert.deepEqual(model.loadCareer().match.events, match.events)
+  assert.deepEqual(model.loadCareer().history[0].match.events, match.events)
 })
 test('invalid match progress is discarded without discarding the coach', () => {
   saved = JSON.stringify({ ...career, match: { ...football.simulate(career), cursor: 99 } })
@@ -84,4 +85,68 @@ test('invalid match progress is discarded without discarding the coach', () => {
   assert.equal(model.loadCareer().match, undefined)
   saved = '{broken'
   assert.equal(model.loadCareer(), null)
+})
+
+test('training applies once per day and cannot run on match days', () => {
+  assert.equal(season.train(career, 'technical'), career)
+  const base = { ...career, day: 2 }
+  const trained = season.train(base, 'technical')
+  assert.equal(season.energy(trained, 'p1'), 90)
+  assert.equal(trained.preparation.skill, 1)
+  assert.equal(season.train(trained, 'tactical'), trained)
+  assert.equal(season.advanceDay(base), base)
+  assert.equal(season.advanceDay(trained).day, 3)
+  assert.equal(season.energy(season.advanceDay(trained), 'p1'), 98)
+})
+test('fatigue applies only to match starters and only once at full time', () => {
+  const base = { ...career, match: football.simulate(career) }
+  const ongoing = season.progressMatch(base, 4)
+  assert.equal(season.energy(ongoing, 'p1'), 100)
+  const done = season.progressMatch(ongoing, 9)
+  assert.equal(season.energy(done, 'p1'), 76)
+  assert.equal(season.energy(done, 'p12'), 100)
+  assert.equal(season.progressMatch(done, 9), done)
+  const rested = season.advanceDay(done)
+  assert.equal(season.energy(rested, 'p1'), 84)
+  assert.equal(rested.history.length, 1)
+  assert.equal(rested.match, undefined)
+})
+test('fitness reduces fatigue, low energy lowers strength and recovery is capped', () => {
+  const prep = season.preparation(career)
+  const tired = { ...career, day: 2, preparation: { ...prep, energy: Object.fromEntries(model.squad.map(p => [p.id, 50])) } }
+  assert.ok(football.strength(model.defaultLineup, '4-3-3', tired) < football.strength(model.defaultLineup, '4-3-3', career))
+  const recovered = season.train(tired, 'recovery')
+  assert.equal(season.energy(recovered, 'p1'), 70)
+  const fit = { ...career, preparation: { ...prep, fitness: 3 }, match: football.simulate(career) }
+  assert.equal(season.energy(season.progressMatch(fit, 9), 'p1'), 82)
+  assert.equal(season.energy(season.train({ ...career, day: 2 }, 'recovery'), 'p1'), 100)
+})
+test('seven-day season completes three matches and preserves all results through reloads', () => {
+  let current = { ...career, day: 1, seasonVersion: 3 }
+  for (let day = 1; day <= 7; day++) {
+    assert.equal(current.day, day)
+    if (season.isMatchDay(current)) {
+      current = { ...current, match: football.simulate(current, () => .4) }
+      assert.equal(season.advanceDay(current), current)
+      current = season.progressMatch(current, 9)
+    } else current = season.train(current, 'recovery')
+    current = season.advanceDay(current)
+    model.saveCareer(current)
+    current = model.loadCareer()
+    assert.ok(current)
+  }
+  assert.equal(current.day, 8)
+  assert.deepEqual(current.history.map(h => h.day), [1, 4, 7])
+  assert.notEqual(current.history[0].match.opponent, current.history[1].match.opponent)
+  assert.equal(season.advanceDay(current), current)
+  assert.equal(season.train(current, 'recovery'), current)
+})
+test('legacy day-two save archives first match and keeps coach identity', () => {
+  saved = JSON.stringify({ ...career, day: 2, match: { ...football.simulate(career), cursor: 9 } })
+  const loaded = model.loadCareer()
+  assert.equal(loaded.day, 2)
+  assert.equal(loaded.history.length, 1)
+  assert.equal(loaded.match, undefined)
+  assert.equal(loaded.name, career.name)
+  assert.equal(loaded.seasonVersion, 3)
 })

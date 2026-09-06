@@ -6,3 +6,6 @@ export const positions: Record<Formation, string[]> = {
   '4-4-2': ['GOL', 'LD', 'ZAG', 'ZAG', 'LE', 'MD', 'MC', 'MC', 'ME', 'ATA', 'ATA'],
   '3-5-2': ['GOL', 'ZAG', 'ZAG', 'ZAG', 'MD', 'VOL', 'MC', 'MC', 'ME', 'ATA', 'ATA'],
 }
+export type TrainingKind = 'physical' | 'technical' | 'tactical' | 'recovery'
+export type Preparation = { energy: Record<string, number>; skill: number; fitness: number; cohesion: number; sessions: { day: number; kind: TrainingKind }[] }
+export const fixtureDays = [1, 4, 7]

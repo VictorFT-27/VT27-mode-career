@@ -4,13 +4,15 @@
 - types.ts: formações, eventos e registro de partida, sem dependência de React.
 - football.ts: escalação, adequação à posição, força e simulação injetável.
 - Lineup.tsx: prancheta e trocas antes da partida.
-- Friendly.tsx: pré-jogo, lances, placar, notas e avanço para o segundo dia.
+- Friendly.tsx: pré-jogo, lances, placar, notas e conclusão de amistosos.
+- season.ts: preparação, energia, desgaste e transições de dias.
+- Schedule.tsx: agenda, treinos e histórico de resultados.
 
 coach está ativo. player e director permanecem no catálogo, sem regras próprias.
 Eventos referenciam atletas por IDs estáveis. A partida guarda o time e a formação
 usados no início, permitindo reaproveitar desempenho e resultados no futuro modo
 jogador e na avaliação de elenco do dirigente.
 
-Próximas etapas: treinos, fadiga, calendário e novas partidas; depois progressão
+Próximas etapas: competições oficiais e objetivos; depois progressão
 individual (jogador) e economia/negociações (dirigente). Não duplicar o motor de
 partidas por modo. Nenhum desses sistemas futuros está implementado agora.

@@ -1,7 +1,7 @@
-import { type Match, type Formation, positions } from './types'
+import { type Match, type Formation, type Preparation, positions, fixtureDays } from './types'
 export type CareerMode = 'coach' | 'player' | 'director'
 export type Club = { id: string; name: string; initials: string; city: string; color: string; reputation: string; objective: string; description: string }
-export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; day?: number; match?: Match }
+export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; day?: number; match?: Match; seasonVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[] }
 export const modes: { id: CareerMode; title: string; subtitle: string; number: string; description: string; available: boolean }[] = [
   { id: 'coach', title: 'Treinador', subtitle: 'À beira do campo', number: '01', description: 'Dê identidade ao time. Escolha seu clube, organize o elenco e prepare sua estratégia.', available: true },
   { id: 'player', title: 'Jogador', subtitle: 'Dentro das quatro linhas', number: '02', description: 'Construa sua trajetória em campo. Treinos, evolução e escolhas que definem uma carreira.', available: false },
@@ -51,8 +51,19 @@ export function loadCareer(): Career | null {
     const c = value as Partial<Career>
     if (!(c.mode === 'coach' && typeof c.name === 'string' && c.name.trim().length > 0 && c.name.length <= 40 && clubs.some(club => club.id === c.clubId) && ['4-3-3', '4-4-2', '3-5-2'].includes(c.formation ?? '') )) return null
     const career = c as Career
-    const match = validMatch(c.match) && c.match.opponent !== c.clubId ? c.match : undefined
-    return { ...career, lineup: validLineup(c.lineup) ? c.lineup : [...defaultLineup], day: c.day === 2 && match?.cursor === 9 ? 2 : 1, match }
+    let match = validMatch(c.match) && c.match.opponent !== c.clubId ? c.match : undefined
+    let day = Number.isInteger(c.day) && c.day! >= 1 && c.day! <= 8 ? c.day! : 1
+    let history = Array.isArray(c.history) ? c.history.filter(h => h && fixtureDays.includes(h.day) && h.day < day && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== c.clubId).filter((h, i, all) => all.findIndex(item => item.day === h.day) === i) : []
+    if (c.seasonVersion !== 3 && day === 2 && match?.cursor === 9) { history = [{ day: 1, match }]; match = undefined }
+    if (!fixtureDays.includes(day)) match = undefined
+    // Recover incomplete calendar saves at their first missing fixture.
+    const missing = fixtureDays.find(d => d < day && !history.some(h => h.day === d))
+    if (missing !== undefined) { day = missing; match = undefined; history = history.filter(h => h.day < day) }
+    const bounded = (n: unknown, max: number) => typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0
+    const prep = c.preparation
+    const energy = Object.fromEntries(squad.map(p => [p.id, typeof prep?.energy?.[p.id] === 'number' ? bounded(prep.energy[p.id], 100) : 100]))
+    const sessions = Array.isArray(prep?.sessions) ? prep.sessions.filter(s => s && [2, 3, 5, 6].includes(s.day) && s.day <= day && ['physical', 'technical', 'tactical', 'recovery'].includes(s.kind)).filter((s, i, all) => all.findIndex(item => item.day === s.day) === i) : []
+    return { ...career, seasonVersion: 3, lineup: validLineup(c.lineup) ? c.lineup : [...defaultLineup], day, match, history, preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
   } catch { return null }
 }
 export function saveCareer(career: Career): boolean {

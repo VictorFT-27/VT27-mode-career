@@ -3,7 +3,7 @@
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
-Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação, treinos ou competições.
+Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação ou competições oficiais.
 
 ## Desenvolvimento local
 
@@ -95,8 +95,9 @@ credenciais. Variáveis com prefixo `VITE_` ficam públicas no código do navega
 3. Abra Amistoso, revise o time e inicie a partida.
 4. Avance os nove lances ou veja o resultado final. Resultado e progresso ficam
    salvos no início e a cada avanço, impedindo novo sorteio ao recarregar.
-5. Confira as notas e avance ao dia 02. O primeiro amistoso continua disponível
-   para consulta; novos jogos e treinos serão implementados em outra etapa.
+5. Confira as notas e avance ao dia 02. Abra Calendário para escolher a preparação.
+6. Complete os sete dias, com amistosos nos dias 1, 4 e 7 e quatro dias de treino.
+   Os resultados arquivados permanecem disponíveis para consulta.
 
 A força considera nível e adequação à posição. O motor cria nove oportunidades,
 com posse da chance ponderada pela força e conversão de 30%. É uma simulação
@@ -106,3 +107,21 @@ partida. O esquema e os titulares ficam congelados no registro desse amistoso.
 Saves anteriores recebem automaticamente titulares e dia inicial. O armazenamento
 continua local à origem do navegador: outro endereço de preview pode ter outro
 save. Não há sincronização entre dispositivos.
+
+## Preparação e calendário (edição 03)
+
+- Sete dias de pré-temporada; conclusão no dia 8, sem avanço infinito.
+- Uma atividade por dia livre: físico, técnico, tático ou recuperação.
+- Energia individual de 0 a 100; ganho noturno de 8 ao avançar.
+- Físico: energia -8, resistência +1 (máximo 3).
+- Técnico: energia -10, nível efetivo +1 (máximo +3).
+- Tático: energia -5, força coletiva +2 (máximo +6).
+- Recuperação: energia +20, limitada a 100.
+- No apito final, só titulares perdem 24 de energia, menos 2 por nível físico.
+- A energia multiplica a força individual por 0,7 + 0,3 × energia/100.
+- Calendário impede pular jogo pendente ou avançar sem atividade no dia livre.
+- Saves anteriores são normalizados na leitura. Um amistoso já encerrado no dia 2
+  é arquivado como dia 1; não aplicamos desgaste retroativo a partidas antigas.
+
+Testes cobrem a semana completa com reload diário, migração, limites de energia,
+treino único, bloqueio de avanço e aplicação única de desgaste no fim da partida.
