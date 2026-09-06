@@ -42,3 +42,7 @@ mesmos sistemas financeiros sejam reutilizados no futuro modo dirigente.
 board.ts registra uma avaliação única depois de cada rodada oficial, combinando
 resultado, posição, meta e situação financeira. BoardPanel.tsx explica cada
 variação de confiança e encerra o comando quando o treinador é demitido.
+
+availability.ts resolve cartões e lesões ao fim da partida, controla ausências por
+número de jogos e impede atletas indisponíveis de entrar em campo. MedicalPanel.tsx
+apresenta o boletim completo do elenco e os riscos disciplinares.

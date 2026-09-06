@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, types, progression, matchEngine, transfers, board
+let model, football, season, league, types, progression, matchEngine, transfers, board, availability
 try {
-  for (const name of ['types', 'model', 'transfers', 'board', 'league', 'matchEngine', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'model', 'transfers', 'board', 'league', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -18,6 +18,7 @@ try {
   matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
   transfers = await import(pathToFileURL(join(directory, 'transfers.mjs')))
   board = await import(pathToFileURL(join(directory, 'board.mjs')))
+  availability = await import(pathToFileURL(join(directory, 'availability.mjs')))
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -76,6 +77,8 @@ test('v1 career migrates without losing identity and rejects duplicate starters'
   assert.equal(Object.keys(model.loadCareer().contracts).length, 18)
   assert.equal(model.loadCareer().finances.budget, model.defaultFinances.aurora.budget)
   assert.deepEqual(model.loadCareer().board, model.defaultBoard())
+  assert.equal(Object.keys(model.loadCareer().availability).length, 18)
+  assert.ok(Object.values(model.loadCareer().availability).every(state => state.injuredMatches === 0 && state.suspensionMatches === 0 && state.yellowCards === 0))
   saved = JSON.stringify({ ...career, lineup: Array(11).fill('p1') })
   assert.deepEqual(model.loadCareer().lineup, model.defaultLineup)
 })
@@ -424,4 +427,38 @@ test('league final whistle records one board meeting alongside the round', () =>
   assert.equal(recommitted.board.history.length, 1)
   model.saveCareer(recommitted)
   assert.equal(model.loadCareer().board.history.length, 1)
+})
+
+test('post-match discipline creates cards and a two-game injury exactly once', () => {
+  const match = { ...football.simulate(career, () => .5), cursor: 9, disciplineRolls: [0, .1, 0, .2, 0, .3] }
+  const settled = availability.settleAvailability({ ...career, match })
+  assert.deepEqual(settled.match.yellowCards, ['p2', 'p3'])
+  assert.deepEqual(settled.match.injury, { playerId: 'p4', matches: 2 })
+  assert.equal(settled.availability.p2.yellowCards, 1)
+  assert.equal(settled.availability.p3.yellowCards, 1)
+  assert.equal(settled.availability.p4.injuredMatches, 2)
+  assert.equal(availability.unavailableLineup({ ...settled, lineup: [...model.defaultLineup] }).includes('p4'), true)
+  assert.equal(availability.settleAvailability(settled), settled)
+})
+
+test('third yellow causes suspension and absences count down after later matches', () => {
+  const initialAvailability = Object.fromEntries(model.squad.map(player => [player.id, { injuredMatches: player.id === 'p4' ? 2 : 0, suspensionMatches: 0, yellowCards: player.id === 'p2' ? 2 : 0 }]))
+  const firstMatch = { ...football.simulate(career, () => .5), cursor: 9, disciplineRolls: [0, .1, 1, .2, 1, .3] }
+  let current = availability.settleAvailability({ ...career, availability: initialAvailability, match: firstMatch })
+  assert.equal(current.availability.p2.yellowCards, 0)
+  assert.equal(current.availability.p2.suspensionMatches, 1)
+  assert.equal(current.availability.p4.injuredMatches, 1)
+  const cleanMatch = { ...football.simulate(career, () => .5), cursor: 9, disciplineRolls: [1, .1, 1, .2, 1, .3] }
+  current = availability.settleAvailability({ ...current, match: cleanMatch })
+  assert.equal(current.availability.p2.suspensionMatches, 0)
+  assert.equal(current.availability.p4.injuredMatches, 0)
+})
+
+test('new signings start available and season renewal clears medical status', () => {
+  const base = { ...career, roster: [...model.defaultRoster], contracts: model.defaultContracts(), finances: { budget: 22000, wageLimit: 1350 }, availability: { p1: { injuredMatches: 1, suspensionMatches: 0, yellowCards: 2 } } }
+  const bought = transfers.buyPlayer(base, 'm1')
+  assert.deepEqual(bought.availability.m1, { injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 })
+  const complete = finishSeason({ ...bought, day: 1, seasonNumber: 1 })
+  const renewed = progression.renewSeason(complete)
+  assert.ok(Object.values(renewed.availability).every(state => state.injuredMatches === 0 && state.suspensionMatches === 0 && state.yellowCards === 0))
 })

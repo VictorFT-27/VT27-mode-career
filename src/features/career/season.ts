@@ -1,4 +1,5 @@
 import { commitRound } from './league'
+import { settleAvailability } from './availability'
 import { finalizeRatings, minutesPlayed, resolveEvent } from './matchEngine'
 import { rosterOf, type Career } from './model'
 import { fixtureDays, leagueDays, type Preparation, type TrainingKind } from './types'
@@ -37,5 +38,6 @@ export function progressMatch(career: Career, cursor: number): Career {
   if (next === 9) resolvedMatch = finalizeRatings(resolvedMatch)
   const prep = preparation(career)
   const fatigue = 24 - prep.fitness * 2
-  return commitRound({ ...career, seasonVersion: 3, match: { ...resolvedMatch, cursor: next }, preparation: next === 9 ? { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.max(0, energy(career, p.id) - fatigue * minutesPlayed(resolvedMatch, p.id) / 90)])) } : prep })
+  const progressed = { ...career, seasonVersion: 3, match: { ...resolvedMatch, cursor: next }, preparation: next === 9 ? { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.max(0, energy(career, p.id) - fatigue * minutesPlayed(resolvedMatch, p.id) / 90)])) } : prep }
+  return commitRound(next === 9 ? settleAvailability(progressed) : progressed)
 }

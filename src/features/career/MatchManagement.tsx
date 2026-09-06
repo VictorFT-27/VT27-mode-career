@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { rosterOf, type Career } from './model'
 import { setMentality, substitute } from './matchEngine'
 import { type Mentality } from './types'
+import { unavailable } from './availability'
 
 const mentalities: { id: Mentality; name: string; summary: string }[] = [
   { id: 'defensive', name: 'Defensiva', summary: 'Protege mais o gol, criando menos oportunidades.' },
@@ -14,7 +15,7 @@ export function MatchManagement({ career, onChange }: { career: Career; onChange
   const squad = rosterOf(career)
   const [outId, setOutId] = useState(match.lineup.find(id => squad.find(player => player.id === id)?.position !== 'GOL') ?? match.lineup[0])
   const outgoing = squad.find(player => player.id === outId)
-  const candidates = squad.filter(player => !match.lineup.includes(player.id) && !match.substitutions?.some(change => change.outId === player.id) && (outgoing?.position === 'GOL') === (player.position === 'GOL'))
+  const candidates = squad.filter(player => !unavailable(career, player.id) && !match.lineup.includes(player.id) && !match.substitutions?.some(change => change.outId === player.id) && (outgoing?.position === 'GOL') === (player.position === 'GOL'))
   const [inId, setInId] = useState('')
   const available = candidates.some(player => player.id === inId) ? inId : candidates[0]?.id ?? ''
   const used = match.substitutions?.length ?? 0

@@ -35,6 +35,21 @@ histórico das reuniões realizadas depois de cada rodada da Liga VT27.
 - Uma demissão encerra as ações daquela carreira e preserva o histórico para
   consulta.
 
+## Departamento médico e disciplinar (edição 09)
+
+Partidas agora podem gerar cartões e lesões persistentes. A área Departamento
+mostra a condição completa do elenco e ajuda o treinador a preparar substitutos.
+
+- Cada jogo pode registrar até dois cartões amarelos.
+- O terceiro amarelo gera suspensão automática de uma partida e zera a contagem.
+- Existe 18% de chance básica de uma lesão ao final da partida.
+- Uma lesão afasta o atleta por uma ou duas partidas.
+- Atletas lesionados ou suspensos não podem começar nem entrar durante o jogo.
+- A partida fica bloqueada enquanto houver um indisponível entre os titulares.
+- Cada partida concluída reduz uma partida das ausências anteriores.
+- Contratações chegam disponíveis; uma nova temporada zera o boletim médico e
+  disciplinar.
+
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.

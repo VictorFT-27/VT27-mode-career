@@ -1,0 +1,17 @@
+import { conditionLabel, conditionOf, unavailable } from './availability'
+import { rosterOf, type Career } from './model'
+import { energy } from './season'
+
+export function MedicalPanel({ career, onLineup }: { career: Career; onLineup: () => void }) {
+  const roster = rosterOf(career)
+  const injured = roster.filter(player => conditionOf(career, player.id).injuredMatches > 0)
+  const suspended = roster.filter(player => conditionOf(career, player.id).suspensionMatches > 0)
+  const warned = roster.filter(player => conditionOf(career, player.id).yellowCards > 0)
+  return <div className="medical-center">
+    <section className="medical-hero"><div><p className="eyebrow">DEPARTAMENTO MÉDICO E DISCIPLINAR</p><h2>Disponibilidade define escolhas.</h2><p>Acompanhe lesões, suspensões e cartões antes de montar o time.</p></div><span aria-hidden="true">✚</span></section>
+    <div className="medical-summary"><article><span>LESIONADOS</span><strong>{injured.length}</strong><small>{injured.length ? 'Fora das próximas partidas' : 'Nenhum atleta no departamento médico'}</small></article><article><span>SUSPENSOS</span><strong>{suspended.length}</strong><small>{suspended.length ? 'Precisam cumprir um jogo' : 'Elenco liberado disciplinarmente'}</small></article><article><span>COM CARTÃO</span><strong>{warned.length}</strong><small>Três amarelos geram suspensão</small></article></div>
+    {!!(injured.length || suspended.length) && <section className="medical-alert panel"><div><p className="eyebrow">ATENÇÃO NA ESCALAÇÃO</p><h2>{injured.length + suspended.length} {injured.length + suspended.length === 1 ? 'atleta indisponível' : 'atletas indisponíveis'}</h2><p>Atletas indisponíveis não podem começar nem entrar durante a partida. Cada jogo concluído reduz uma partida da ausência.</p></div><button className="primary" onClick={onLineup}>Ajustar escalação →</button></section>}
+    <section className="panel"><div className="section-heading"><div><p className="eyebrow">BOLETIM DO ELENCO</p><h2>Condição dos atletas</h2></div><span className="muted">Atualizado após cada partida</span></div><div className="table-wrap"><table><thead><tr><th>Atleta</th><th>Pos.</th><th>Energia</th><th>Cartões</th><th>Condição</th></tr></thead><tbody>{roster.map(player => { const state = conditionOf(career, player.id); return <tr className={unavailable(career, player.id) ? 'medical-unavailable' : ''} key={player.id}><th scope="row">{player.name}</th><td><span className="position">{player.position}</span></td><td>{energy(career, player.id)}%</td><td><span className={state.yellowCards === 2 ? 'cards-danger' : ''}>{state.yellowCards}/3</span></td><td><span className={`condition-badge ${unavailable(career, player.id) ? 'condition-out' : state.yellowCards ? 'condition-watch' : ''}`}>{conditionLabel(career, player.id)}</span></td></tr> })}</tbody></table></div></section>
+    <details className="rules-explainer"><summary>Como funcionam lesões e suspensões?</summary><p>Depois de cada partida, podem surgir até dois cartões amarelos e uma lesão. A chance básica de lesão é 18%; quando acontece, o atleta perde uma ou duas partidas. Ao receber o terceiro amarelo, o jogador zera a contagem e cumpre suspensão de um jogo.</p><p>Uma ausência diminui ao concluir uma partida do clube, mesmo que o atleta não entre em campo. Ao começar uma nova temporada, lesões, suspensões e cartões são zerados nesta versão.</p></details>
+  </div>
+}
