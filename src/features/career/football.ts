@@ -1,6 +1,7 @@
+import { leagueFixture } from './league'
 import { energy, preparation } from './season'
 import { clubs, defaultLineup, squad, validLineup, type Career } from './model'
-import { positions, type Formation, type Match } from './types'
+import { positions, type Formation, type Match, leagueRounds } from './types'
 export function player(id: string) { return squad.find(p => p.id === id)! }
 export function lineupOf(career: Career) { return validLineup(career.lineup) ? career.lineup : [...defaultLineup] }
 export function fit(id: string, position: string) {
@@ -27,8 +28,9 @@ export function score(match: Match, cursor = match.cursor) {
 export function simulate(career: Career, random = Math.random): Match {
   const lineup = lineupOf(career)
   const power = strength(lineup, career.formation, career)
-  const opponents = clubs.filter(c => c.id !== career.clubId)
-  const opponent = opponents[Math.floor(((career.day ?? 1) - 1) / 3) % opponents.length]
+  const fixture = leagueFixture(career)
+  const opponents = clubs.slice(0, 3).filter(c => c.id !== career.clubId)
+  const opponent = fixture ? clubs.find(c => c.id === fixture.opponent)! : opponents[Math.floor(((career.day ?? 1) - 1) / 3) % opponents.length]
   const homeChance = Math.max(.3, Math.min(.7, .5 + (power - 70) / 100))
   const events = Array.from({ length: 9 }, (_, index) => {
     const side = random() < homeChance ? 'home' as const : 'away' as const
@@ -40,5 +42,7 @@ export function simulate(career: Career, random = Math.random): Match {
   const home = events.filter(e => e.side === 'home' && e.goal).length
   const away = events.filter(e => e.side === 'away' && e.goal).length
   const ratings = lineup.map(id => ({ playerId: id, value: Math.round(Math.max(1, Math.min(10, 6 + random() * 1.2 + (home - away) * .2 + events.filter(e => e.playerId === id && e.goal).length * .7)) * 10) / 10 }))
-  return { opponent: opponent.id, lineup: [...lineup], formation: career.formation, strength: power, events, ratings, cursor: 0 }
+  const pair = fixture ? leagueRounds[fixture.round - 1].find(([home, away]) => home !== career.clubId && away !== career.clubId) : undefined
+  const otherResult = pair && fixture ? { round: fixture.round, home: pair[0], away: pair[1], homeGoals: Math.floor(random() * 4), awayGoals: Math.floor(random() * 4) } : undefined
+  return { ...(otherResult ? { otherResult } : {}), opponent: opponent.id, lineup: [...lineup], formation: career.formation, strength: power, events, ratings, cursor: 0 }
 }

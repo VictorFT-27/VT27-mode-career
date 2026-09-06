@@ -3,7 +3,7 @@
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
-Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação ou competições oficiais.
+Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação; a Liga VT27 é a primeira competição oficial fictícia.
 
 ## Desenvolvimento local
 
@@ -125,3 +125,24 @@ save. Não há sincronização entre dispositivos.
 
 Testes cobrem a semana completa com reload diário, migração, limites de energia,
 treino único, bloqueio de avanço e aplicação única de desgaste no fim da partida.
+
+## Liga VT27 (edição 04)
+
+Após a pré-temporada, abra Liga VT27 e escolha Entrar na Liga. O dia 8 é de
+preparação. São quatro clubes (incluindo Atlético do Vale), seis rodadas de ida e
+volta nos dias 9, 12, 15, 18, 21 e 24. A temporada termina no dia 25.
+
+- Vitória: 3 pontos; empate: 1 ponto.
+- Desempate: pontos, vitórias, saldo, gols marcados e ordem alfabética.
+- Cada rodada tem dois jogos. O jogo dos outros clubes é gerado no início da sua
+  partida, persistido com ela e contabilizado apenas no apito final.
+- Os eventos usam home como referência ao time do usuário; a tabela converte
+  corretamente esses gols para mandante/visitante conforme o calendário.
+- Mando de campo ainda não altera força ou probabilidade de vitória.
+- Objetivos: Porto Azul campeão; Aurora e Vale no top 2; União da Serra no top 3.
+- A avaliação da diretoria é informativa; ainda não há demissão, economia,
+  rebaixamento ou renovação automática de temporada.
+- O elenco, energia, preparação e histórico de amistosos são preservados.
+
+Testes adicionais validam calendário equilibrado, pontuação, registro único da
+rodada e a temporada completa até o dia 25 com recargas de save em cada dia.

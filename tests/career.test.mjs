@@ -7,13 +7,15 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season
+let model, football, season, league, types
 try {
-  for (const name of ['types', 'model', 'season', 'football']) {
+  for (const name of ['types', 'model', 'league', 'season', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
   }
+  league = await import(pathToFileURL(join(directory, 'league.mjs')))
+  types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
   season = await import(pathToFileURL(join(directory, 'season.mjs')))
   football = await import(pathToFileURL(join(directory, 'football.mjs')))
@@ -149,4 +151,58 @@ test('legacy day-two save archives first match and keeps coach identity', () => 
   assert.equal(loaded.match, undefined)
   assert.equal(loaded.name, career.name)
   assert.equal(loaded.seasonVersion, 3)
+})
+
+test('league schedule gives every club six games and balanced home/away fixtures', () => {
+  for (const club of model.clubs) {
+    const all = types.leagueRounds.flat().filter(pair => pair.includes(club.id))
+    assert.equal(all.length, 6)
+    assert.equal(all.filter(pair => pair[0] === club.id).length, 3)
+    for (const other of model.clubs.filter(c => c.id !== club.id)) assert.equal(all.filter(pair => pair.includes(other.id)).length, 2)
+  }
+  for (const round of types.leagueRounds) assert.equal(new Set(round.flat()).size, 4)
+})
+test('league table awards points and resolves draws, wins and goal difference', () => {
+  const table = league.standings([{ round: 1, home: 'aurora', away: 'vale', homeGoals: 2, awayGoals: 0 }, { round: 1, home: 'porto', away: 'serra', homeGoals: 1, awayGoals: 1 }])
+  assert.equal(table[0].id, 'aurora'); assert.equal(table[0].points, 3)
+  assert.equal(table.find(r => r.id === 'porto').points, 1)
+  assert.equal(table.find(r => r.id === 'vale').difference, -2)
+  assert.equal(table.reduce((s, r) => s + r.goalsFor, 0), table.reduce((s, r) => s + r.goalsAgainst, 0))
+})
+test('official season preserves six rounds and both fixture results through reloads', () => {
+  let current = { ...career, day: 1, seasonVersion: 3 }
+  assert.equal(league.startLeague(current), current)
+  for (let day = 1; day < 8; day++) {
+    current = season.isMatchDay(current) ? season.progressMatch({ ...current, match: football.simulate(current, () => .2) }, 9) : season.train(current, 'recovery')
+    current = season.advanceDay(current)
+  }
+  const previousHistory = structuredClone(current.history)
+  current = league.startLeague(current)
+  assert.equal(current.leagueActive, true)
+  assert.deepEqual(current.history, previousHistory)
+  for (let day = 8; day <= 24; day++) {
+    assert.equal(current.day, day)
+    if (season.isMatchDay(current)) {
+      const fixture = league.leagueFixture(current)
+      current = { ...current, match: football.simulate(current, () => .2) }
+      model.saveCareer(current); current = model.loadCareer()
+      assert.equal(current.match.otherResult.round, fixture.round)
+      assert.equal((current.leagueResults ?? []).length, (fixture.round - 1) * 2)
+      current = season.progressMatch(current, 9)
+      assert.equal(current.leagueResults.length, fixture.round * 2)
+      assert.deepEqual(league.commitRound(current).leagueResults, current.leagueResults)
+      const own = current.leagueResults.find(r => r.round === fixture.round && [r.home, r.away].includes(current.clubId))
+      assert.equal(fixture.atHome ? own.homeGoals : own.awayGoals, 9)
+    } else current = season.train(current, 'recovery')
+    current = season.advanceDay(current)
+    model.saveCareer(current); current = model.loadCareer()
+    assert.ok(current)
+  }
+  assert.equal(current.day, 25)
+  assert.equal(current.history.length, 9)
+  assert.equal(current.leagueResults.length, 12)
+  const table = league.standings(current.leagueResults)
+  assert.ok(table.every(row => row.played === 6))
+  assert.equal(table.find(row => row.id === career.clubId).points, 18)
+  assert.equal(season.advanceDay(current), current)
 })

@@ -16,3 +16,10 @@ jogador e na avaliação de elenco do dirigente.
 Próximas etapas: competições oficiais e objetivos; depois progressão
 individual (jogador) e economia/negociações (dirigente). Não duplicar o motor de
 partidas por modo. Nenhum desses sistemas futuros está implementado agora.
+
+## Competição
+
+league.ts mantém calendário consultável, transição para liga, classificação e
+registro dos dois resultados de cada rodada. League.tsx apresenta tabela,
+confrontos e objetivos da diretoria. Os mesmos atletas e o motor de partidas são
+usados na liga e na pré-temporada; nenhum sistema paralelo por modo foi criado.
