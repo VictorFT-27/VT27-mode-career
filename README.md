@@ -1,8 +1,9 @@
 # VT27 Mode Career
 
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
-Esta versão exibe somente uma tela de confirmação. Não há regras de jogo,
-persistência, autenticação ou serviços externos implementados.
+Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
+elenco demonstrativo e formação tática. Carreira salva apenas neste navegador.
+Jogador e dirigente estão planejados. Não há simulação de partidas ou autenticação.
 
 ## Desenvolvimento local
 
@@ -57,7 +58,7 @@ Não use o comando de deploy do Workers no fluxo de Pages.
 - Branch de produção: `main`
 - Build command: `npm run build`
 - Deploy command: `npx wrangler deploy`
-- Para versões de branches de preview, se habilitadas: `npx wrangler versions upload`
+- Para versões de branches de preview, se habilitadas: `npm run build && npx wrangler versions upload`
 
 O arquivo `wrangler.jsonc` define o nome `vt27-mode-career`, os arquivos em `dist`
 e o fallback de navegação para a SPA. Se o Worker no painel tiver outro nome,
