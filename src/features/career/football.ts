@@ -46,7 +46,6 @@ export function simulate(career: Career, random = Math.random): Match {
   const home = events.filter(e => e.side === 'home' && e.goal).length
   const away = events.filter(e => e.side === 'away' && e.goal).length
   const ratings = lineup.map(id => ({ playerId: id, value: Math.round(Math.max(1, Math.min(10, 6 + random() * 1.2 + (home - away) * .2 + events.filter(e => e.playerId === id && e.goal).length * .7)) * 10) / 10 }))
-  const pair = fixture ? leagueRounds[fixture.round - 1].find(([home, away]) => home !== career.clubId && away !== career.clubId) : undefined
-  const otherResult = pair && fixture ? { round: fixture.round, home: pair[0], away: pair[1], homeGoals: Math.floor(random() * 4), awayGoals: Math.floor(random() * 4) } : undefined
-  return { ...(otherResult ? { otherResult } : {}), opponent: opponent.id, startingLineup: [...lineup], lineup: [...lineup], formation: career.formation, strength: power, events, ratings, cursor: 0, mentality: 'balanced', substitutions: [], disciplineRolls: Array.from({ length: 6 }, () => random()) }
+  const otherResults = fixture ? leagueRounds[fixture.round - 1].filter(([home, away]) => home !== career.clubId && away !== career.clubId).map(([otherHome, otherAway]) => ({ round: fixture.round, home: otherHome, away: otherAway, homeGoals: Math.floor(random() * 4), awayGoals: Math.floor(random() * 4) })) : undefined
+  return { ...(otherResults ? { otherResults } : {}), opponent: opponent.id, startingLineup: [...lineup], lineup: [...lineup], formation: career.formation, strength: power, events, ratings, cursor: 0, mentality: 'balanced', substitutions: [], disciplineRolls: Array.from({ length: 6 }, () => random()) }
 }

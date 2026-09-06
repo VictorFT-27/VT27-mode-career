@@ -1,6 +1,7 @@
 import { defaultBoard, type Career } from './model'
 import { financesOf, wageUsed } from './transfers'
 import type { BoardState, LeagueResult } from './types'
+import { leagueRounds } from './types'
 
 export function boardOf(career: Career): BoardState { return career.board ?? defaultBoard() }
 export function isDismissed(career: Career) { return boardOf(career).status === 'dismissed' }
@@ -18,7 +19,7 @@ export function reviewRound(career: Career, own: LeagueResult, rank: number, tar
   const wageRatio = wageUsed(career) / finances.wageLimit
   if (wageRatio > .95) { delta -= 3; reasons.push('folha salarial no limite') }
   else if (wageRatio < .8 && finances.budget >= 3000) { delta += 1; reasons.push('finanças controladas') }
-  if (own.round === 6 && rank > target) { delta -= 8; reasons.push('objetivo final não alcançado') }
+  if (own.round === leagueRounds.length && rank > target) { delta -= 8; reasons.push('objetivo final não alcançado') }
   const confidence = Math.max(0, Math.min(100, board.confidence + delta))
   const review = { round: own.round, delta, confidence, rank, result, reason: reasons.join(' · ') }
   return { ...career, board: { confidence, lastRound: own.round, status: boardStatus(confidence), history: [...board.history, review] } }

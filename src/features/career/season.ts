@@ -2,7 +2,7 @@ import { commitRound } from './league'
 import { settleAvailability } from './availability'
 import { finalizeRatings, minutesPlayed, resolveEvent } from './matchEngine'
 import { rosterOf, type Career } from './model'
-import { fixtureDays, leagueDays, type Preparation, type TrainingKind } from './types'
+import { fixtureDays, leagueDays, leagueEndDay, type Preparation, type TrainingKind } from './types'
 export const sessions: { kind: TrainingKind; name: string; subtitle: string; effect: string }[] = [
   { kind: 'physical', name: 'Físico', subtitle: 'Mais resistência', effect: '−8 de energia. +1 de preparo físico (até 3), reduzindo o desgaste de cada jogo em 2 pontos por nível.' },
   { kind: 'technical', name: 'Técnico', subtitle: 'Qualidade com a bola', effect: '−10 de energia. +1 de nível técnico do elenco (até +3), aplicado à força nas partidas.' },
@@ -16,14 +16,14 @@ export function isMatchDay(career: Career) { return (career.leagueActive ? [...f
 export function train(career: Career, kind: TrainingKind): Career {
   const day = career.day ?? 1
   const prep = preparation(career)
-  if (career.board?.status === 'dismissed' || day > (career.leagueActive ? 24 : 7) || isMatchDay(career) || career.match || prep.sessions.some(s => s.day === day) || !sessions.some(s => s.kind === kind)) return career
+  if (career.board?.status === 'dismissed' || day >= (career.leagueActive ? leagueEndDay : 8) || isMatchDay(career) || career.match || prep.sessions.some(s => s.day === day) || !sessions.some(s => s.kind === kind)) return career
   const delta = { physical: -8, technical: -10, tactical: -5, recovery: 20 }[kind]
   return { ...career, seasonVersion: 3, preparation: { energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.max(0, Math.min(100, energy(career, p.id) + delta))])), skill: Math.min(3, prep.skill + (kind === 'technical' ? 1 : 0)), fitness: Math.min(3, prep.fitness + (kind === 'physical' ? 1 : 0)), cohesion: Math.min(6, prep.cohesion + (kind === 'tactical' ? 2 : 0)), sessions: [...prep.sessions, { day, kind }] } }
 }
 export function advanceDay(career: Career): Career {
   const day = career.day ?? 1
   const prep = preparation(career)
-  if (career.board?.status === 'dismissed' || day >= (career.leagueActive ? 25 : 8) || (isMatchDay(career) ? career.match?.cursor !== 9 : !prep.sessions.some(s => s.day === day))) return career
+  if (career.board?.status === 'dismissed' || day >= (career.leagueActive ? leagueEndDay : 8) || (isMatchDay(career) ? career.match?.cursor !== 9 : !prep.sessions.some(s => s.day === day))) return career
   career = commitRound(career)
   const history = career.match ? [...(career.history ?? []).filter(h => h.day !== day), { day, match: career.match }] : career.history ?? []
   return { ...career, seasonVersion: 3, day: day + 1, history, match: undefined, preparation: { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.min(100, energy(career, p.id) + 8)])) } }

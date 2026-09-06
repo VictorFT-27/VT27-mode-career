@@ -25,7 +25,7 @@ try {
   season = await import(pathToFileURL(join(directory, 'season.mjs')))
   football = await import(pathToFileURL(join(directory, 'football.mjs')))
 } finally { await rm(directory, { recursive: true, force: true }) }
-const career = { mode: 'coach', name: 'Victor', clubId: 'flamengo', formation: '4-3-3' }
+const career = { mode: 'coach', name: 'Victor', clubId: 'flamengo', formation: '4-3-3', dataVersion: 2 }
 let saved = null
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => saved, setItem: (_, value) => { saved = value } } })
 
@@ -41,7 +41,8 @@ test('lineup has 11 unique starters and 7 reserves; swaps preserve both invarian
   assert.equal(swapped[1], initial[2]); assert.equal(swapped[2], initial[1])
 })
 test('each real club starts with its own 18-player squad and valid lineup', () => {
-  assert.deepEqual(model.clubs.map(club => club.name), ['Flamengo', 'Palmeiras', 'Corinthians', 'São Paulo'])
+  assert.equal(model.clubs.length, 20)
+  assert.deepEqual(model.clubs.slice(0, 4).map(club => club.name), ['Flamengo', 'Palmeiras', 'Corinthians', 'São Paulo'])
   const rosters = model.clubs.map(club => model.createCareer('Victor', club.id))
   for (const created of rosters) {
     assert.equal(created.roster.length, 18)
@@ -49,7 +50,7 @@ test('each real club starts with its own 18-player squad and valid lineup', () =
     assert.ok(model.validLineup(created.lineup))
     assert.ok(model.rosterOf(created).every(player => player.clubId === created.clubId))
   }
-  assert.equal(new Set(rosters.flatMap(created => created.roster)).size, 72)
+  assert.equal(new Set(rosters.flatMap(created => created.roster)).size, 360)
 })
 test('keeper rules reject invalid swaps but accept reserve goalkeeper', () => {
   const initial = football.lineupOf(career)
@@ -183,14 +184,14 @@ test('legacy day-two save archives first match and keeps coach identity', () => 
   assert.equal(loaded.seasonVersion, 3)
 })
 
-test('league schedule gives every club six games and balanced home/away fixtures', () => {
+test('league schedule gives every club 38 games and balanced home/away fixtures', () => {
   for (const club of model.clubs) {
     const all = types.leagueRounds.flat().filter(pair => pair.includes(club.id))
-    assert.equal(all.length, 6)
-    assert.equal(all.filter(pair => pair[0] === club.id).length, 3)
+    assert.equal(all.length, 38)
+    assert.equal(all.filter(pair => pair[0] === club.id).length, 19)
     for (const other of model.clubs.filter(c => c.id !== club.id)) assert.equal(all.filter(pair => pair.includes(other.id)).length, 2)
   }
-  for (const round of types.leagueRounds) assert.equal(new Set(round.flat()).size, 4)
+  for (const round of types.leagueRounds) assert.equal(new Set(round.flat()).size, 20)
 })
 test('league table awards points and resolves draws, wins and goal difference', () => {
   const table = league.standings([{ round: 1, home: 'flamengo', away: 'sao-paulo', homeGoals: 2, awayGoals: 0 }, { round: 1, home: 'palmeiras', away: 'corinthians', homeGoals: 1, awayGoals: 1 }])
@@ -199,7 +200,7 @@ test('league table awards points and resolves draws, wins and goal difference', 
   assert.equal(table.find(r => r.id === 'sao-paulo').difference, -2)
   assert.equal(table.reduce((s, r) => s + r.goalsFor, 0), table.reduce((s, r) => s + r.goalsAgainst, 0))
 })
-test('official season preserves six rounds and both fixture results through reloads', () => {
+test('official season preserves 38 rounds and all fixture results through reloads', () => {
   let current = { ...career, day: 1, seasonVersion: 3 }
   assert.equal(league.startLeague(current), current)
   for (let day = 1; day < 8; day++) {
@@ -210,16 +211,17 @@ test('official season preserves six rounds and both fixture results through relo
   current = league.startLeague(current)
   assert.equal(current.leagueActive, true)
   assert.deepEqual(current.history, previousHistory)
-  for (let day = 8; day <= 24; day++) {
+  for (let day = 8; day < types.leagueEndDay; day++) {
     assert.equal(current.day, day)
     if (season.isMatchDay(current)) {
       const fixture = league.leagueFixture(current)
       current = { ...current, match: football.simulate(current, () => .2) }
       model.saveCareer(current); current = model.loadCareer()
-      assert.equal(current.match.otherResult.round, fixture.round)
-      assert.equal((current.leagueResults ?? []).length, (fixture.round - 1) * 2)
+      assert.equal(current.match.otherResults.length, 9)
+      assert.ok(current.match.otherResults.every(result => result.round === fixture.round))
+      assert.equal((current.leagueResults ?? []).length, (fixture.round - 1) * 10)
       current = season.progressMatch(current, 9)
-      assert.equal(current.leagueResults.length, fixture.round * 2)
+      assert.equal(current.leagueResults.length, fixture.round * 10)
       assert.deepEqual(league.commitRound(current).leagueResults, current.leagueResults)
       const own = current.leagueResults.find(r => r.round === fixture.round && [r.home, r.away].includes(current.clubId))
       assert.equal(fixture.atHome ? own.homeGoals : own.awayGoals, 9)
@@ -228,18 +230,18 @@ test('official season preserves six rounds and both fixture results through relo
     model.saveCareer(current); current = model.loadCareer()
     assert.ok(current)
   }
-  assert.equal(current.day, 25)
-  assert.equal(current.history.length, 9)
-  assert.equal(current.leagueResults.length, 12)
+  assert.equal(current.day, types.leagueEndDay)
+  assert.equal(current.history.length, 41)
+  assert.equal(current.leagueResults.length, 380)
   const table = league.standings(current.leagueResults)
-  assert.ok(table.every(row => row.played === 6))
-  assert.equal(table.find(row => row.id === career.clubId).points, 18)
+  assert.ok(table.every(row => row.played === 38))
+  assert.equal(table.find(row => row.id === career.clubId).points, 114)
   assert.equal(season.advanceDay(current), current)
 })
 
 function finishSeason(input) {
   let current = input
-  for (let day = current.day ?? 1; day <= 24; day++) {
+  for (let day = current.day ?? 1; day < types.leagueEndDay; day++) {
     if (day === 8) current = league.startLeague(current)
     current = season.isMatchDay(current) ? season.progressMatch({ ...current, match: football.simulate(current, () => .2) }, 9) : season.train(current, 'recovery')
     current = season.advanceDay(current)
@@ -272,7 +274,7 @@ test('renewal is gated, archives the season deeply and resets only temporary pre
   assert.equal(progression.renewSeason(career), career)
   const complete = finishSeason({ ...career, day: 1, seasonNumber: 1 })
   assert.ok(progression.canRenew(complete))
-  assert.equal(progression.renewSeason({ ...complete, day: 24 }).day, 24)
+  assert.equal(progression.renewSeason({ ...complete, day: types.leagueEndDay - 1 }).day, types.leagueEndDay - 1)
   const before = structuredClone(complete)
   const renewed = progression.renewSeason(complete)
   assert.equal(renewed.seasonNumber, 2)
@@ -292,7 +294,7 @@ test('renewal is gated, archives the season deeply and resets only temporary pre
   model.saveCareer(renewed)
   const loaded = model.loadCareer()
   assert.equal(loaded.seasonNumber, 2)
-  assert.equal(loaded.archives[0].matches.length, 9)
+  assert.equal(loaded.archives[0].matches.length, 41)
   assert.deepEqual(loaded.playerGrowth, renewed.playerGrowth)
 })
 test('two full seasons can be renewed without overwriting archived fixtures', () => {
@@ -368,17 +370,18 @@ test('fatigue and appearances follow proportional minutes for substitutes', () =
 test('market purchase changes budget, wage bill, roster and persists through reload', () => {
   const base = { ...career, roster: [...model.defaultRoster], contracts: model.defaultContracts(), finances: { budget: 50000, wageLimit: 5000 } }
   const wages = transfers.wageUsed(base)
-  const bought = transfers.buyPlayer(base, 'merc1')
+  const target = model.marketPlayers[0]
+  const bought = transfers.buyPlayer(base, target.id)
   assert.notEqual(bought, base)
   assert.equal(bought.roster.length, 19)
-  assert.ok(bought.roster.includes('merc1'))
+  assert.ok(bought.roster.includes(target.id))
   assert.equal(bought.finances.budget, 34000)
   assert.equal(transfers.wageUsed(bought), wages + model.marketPlayers[0].wage)
-  assert.equal(bought.contracts.merc1.seasons, 3)
-  assert.equal(season.energy(bought, 'merc1'), 100)
+  assert.equal(bought.contracts[target.id].seasons, 3)
+  assert.equal(season.energy(bought, target.id), 100)
   model.saveCareer(bought)
   const loaded = model.loadCareer()
-  assert.ok(loaded.roster.includes('merc1'))
+  assert.ok(loaded.roster.includes(target.id))
   assert.equal(loaded.finances.budget, 34000)
   assert.equal(loaded.transfers.at(-1).kind, 'buy')
 })
@@ -391,14 +394,14 @@ test('market respects squad, budget, wage and live-match safeguards', () => {
   assert.equal(transfers.sellPlayer(reduced, 'fla14'), reduced)
   assert.equal(transfers.sellPlayer(base, 'fla1'), base)
   assert.equal(transfers.sellPlayer({ ...base, lineup: undefined }, 'fla1').roster.length, 18)
-  assert.equal(transfers.buyPlayer({ ...base, finances: { budget: 1, wageLimit: 5000 } }, 'merc1').roster.length, 18)
-  assert.equal(transfers.buyPlayer({ ...base, finances: { budget: 100000, wageLimit: transfers.wageUsed(base) } }, 'merc1').roster.length, 18)
+  assert.equal(transfers.buyPlayer({ ...base, finances: { budget: 1, wageLimit: 5000 } }, model.marketPlayers[0].id).roster.length, 18)
+  assert.equal(transfers.buyPlayer({ ...base, finances: { budget: 100000, wageLimit: transfers.wageUsed(base) } }, model.marketPlayers[0].id).roster.length, 18)
   let full = base
   for (const player of model.marketPlayers.slice(0, 5)) full = transfers.buyPlayer(full, player.id)
   assert.equal(full.roster.length, 23)
-  assert.equal(transfers.buyPlayer(full, 'merc6'), full)
+  assert.equal(transfers.buyPlayer(full, model.marketPlayers[5].id), full)
   const playing = { ...base, match: football.simulate(base, () => .2) }
-  assert.equal(transfers.buyPlayer(playing, 'merc1'), playing)
+  assert.equal(transfers.buyPlayer(playing, model.marketPlayers[0].id), playing)
 })
 
 test('sales return 85 percent and expiring contracts can be renewed', () => {
@@ -432,8 +435,8 @@ test('repeated poor results create pressure and can dismiss the manager', () => 
   assert.equal(current.board.status, 'dismissed')
   assert.equal(current.board.history.length, 4)
   assert.equal(season.train({ ...current, day: 2 }, 'recovery').board.status, 'dismissed')
-  assert.equal(transfers.buyPlayer(current, 'merc1'), current)
-  assert.equal(progression.canRenew({ ...current, day: 25, leagueActive: true }), false)
+  assert.equal(transfers.buyPlayer(current, model.marketPlayers[0].id), current)
+  assert.equal(progression.canRenew({ ...current, day: types.leagueEndDay, leagueActive: true }), false)
 })
 
 test('league final whistle records one board meeting alongside the round', () => {
@@ -475,8 +478,9 @@ test('third yellow causes suspension and absences count down after later matches
 
 test('new signings start available and season renewal clears medical status', () => {
   const base = { ...career, roster: [...model.defaultRoster], contracts: model.defaultContracts(), finances: { budget: 50000, wageLimit: 5000 }, availability: { fla1: { injuredMatches: 1, suspensionMatches: 0, yellowCards: 2 } } }
-  const bought = transfers.buyPlayer(base, 'merc1')
-  assert.deepEqual(bought.availability.merc1, { injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 })
+  const target = model.marketPlayers[0]
+  const bought = transfers.buyPlayer(base, target.id)
+  assert.deepEqual(bought.availability[target.id], { injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 })
   const complete = finishSeason({ ...bought, day: 1, seasonNumber: 1 })
   const renewed = progression.renewSeason(complete)
   assert.ok(Object.values(renewed.availability).every(state => state.injuredMatches === 0 && state.suspensionMatches === 0 && state.yellowCards === 0))

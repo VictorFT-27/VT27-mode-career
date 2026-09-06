@@ -1,6 +1,6 @@
 import { allPlayers, rosterOf, validLeagueResult, type Career } from './model'
 import { contractsOf } from './transfers'
-import { leagueDays, type SeasonArchive } from './types'
+import { fixtureDays, leagueDays, leagueEndDay, leagueResultCount, type SeasonArchive } from './types'
 export function overall(career: Career, id: string) { return allPlayers.find(p => p.id === id)!.rating + (career.playerGrowth?.[id] ?? 0) }
 export function playerStats(career: Career) {
   const matches = [...(career.history ?? []).filter(h => leagueDays.includes(h.day))]
@@ -16,7 +16,7 @@ export function playerStats(career: Career) {
 }
 export function canRenew(career: Career) {
   const results = career.leagueResults ?? []
-  return career.board?.status !== 'dismissed' && career.day === 25 && career.leagueActive === true && results.length === 12 && results.every(validLeagueResult) && new Set(results.map(r => r.round + ':' + r.home)).size === 12 && [1, 4, 7, ...leagueDays].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))
+  return career.board?.status !== 'dismissed' && career.day === leagueEndDay && career.leagueActive === true && results.length === leagueResultCount && results.every(validLeagueResult) && new Set(results.map(r => r.round + ':' + r.home)).size === leagueResultCount && [...fixtureDays, ...leagueDays].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))
 }
 export function renewSeason(career: Career): Career {
   if (!canRenew(career)) return career

@@ -18,9 +18,9 @@ export function commitRound(career: Career): Career {
   const ownGoals = career.match.events.filter(e => e.goal && e.side === 'home').length
   const opponentGoals = career.match.events.filter(e => e.goal && e.side === 'away').length
   const own: LeagueResult = { round: fixture.round, home: fixture.home, away: fixture.away, homeGoals: fixture.atHome ? ownGoals : opponentGoals, awayGoals: fixture.atHome ? opponentGoals : ownGoals }
-  const other = career.match.otherResult
-  const validOther = validLeagueResult(other) && other.round === fixture.round && other.home !== fixture.home && other.away !== fixture.away
-  const results = [own, ...(validOther ? [other] : [])]
+  const candidates = [...(career.match.otherResults ?? []), ...(career.match.otherResult ? [career.match.otherResult] : [])]
+  const otherResults = candidates.filter((result, index, all) => validLeagueResult(result) && result.round === fixture.round && result.home !== fixture.home && result.away !== fixture.away && all.findIndex(item => item.home === result.home) === index)
+  const results = [own, ...otherResults]
   const existing = career.leagueResults ?? []
   const next = { ...career, leagueResults: [...existing.filter(r => r.round !== fixture.round), ...results] }
   const rank = standings(next.leagueResults).findIndex(row => row.id === career.clubId) + 1
@@ -40,4 +40,11 @@ export function standings(results: LeagueResult[]) {
   rows.forEach(row => { row.difference = row.goalsFor - row.goalsAgainst })
   return rows.sort((a, b) => b.points - a.points || b.wins - a.wins || b.difference - a.difference || b.goalsFor - a.goalsFor || a.name.localeCompare(b.name, 'pt-BR'))
 }
-export function boardTarget(id: string) { return id === 'flamengo' ? 1 : id === 'sao-paulo' ? 3 : 2 }
+export function boardTarget(id: string) {
+  if (['flamengo', 'palmeiras'].includes(id)) return 1
+  if (['corinthians', 'sao-paulo', 'atletico-mg', 'cruzeiro', 'bahia', 'fluminense'].includes(id)) return 6
+  if (['botafogo', 'gremio', 'internacional', 'santos', 'athletico-pr'].includes(id)) return 8
+  if (['red-bull-bragantino', 'vasco'].includes(id)) return 12
+  if (['coritiba', 'vitoria', 'mirassol'].includes(id)) return 14
+  return 16
+}

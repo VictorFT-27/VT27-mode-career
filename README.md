@@ -2,19 +2,17 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
-## Futebol brasileiro real (edição 10)
+## Futebol brasileiro real (edição 11)
 
-O primeiro pacote de dados reais traz Flamengo, Palmeiras, Corinthians e São Paulo,
-cada um com 18 atletas vinculados ao próprio clube. O mercado também passa a usar
-nomes reais. Níveis, valores e salários são estimativas internas criadas para o
-equilíbrio do simulador e não representam dados oficiais.
+O pacote nacional traz os 20 participantes da Série A 2026, cada um com 18 atletas
+vinculados ao próprio clube: são 360 jogadores na base inicial. O mercado também
+usa atletas desses elencos. Níveis, valores e salários são estimativas internas
+criadas para o equilíbrio do simulador e não representam dados oficiais.
 
 - Uma nova carreira recebe automaticamente o elenco do clube escolhido.
-- Saves do antigo universo fictício são convertidos para os clubes e atletas reais,
-  preservando treinador, calendário, evolução e histórico sempre que válido.
-- A Liga VT27 mantém o formato atual de quatro clubes e seis rodadas nesta etapa.
-- Os demais clubes brasileiros serão adicionados em novos pacotes de dados sem
-  misturar a base de jogadores com as regras do jogo.
+- Saves antigos mantêm treinador, clube, elenco, contratos e evolução. Uma liga curta
+  que esteja em andamento recomeça na pré-temporada para entrar no novo calendário.
+- O Brasileirão usa turno e returno, com 38 rodadas e dez partidas por rodada.
 
 ## Mercado e contratos (edição 07)
 
@@ -37,7 +35,7 @@ receitas, propostas de outros clubes e negociação de valores entram em etapas 
 ## Diretoria e confiança (edição 08)
 
 A sala da Diretoria apresenta uma meta mensurável, confiança de 0 a 100 e o
-histórico das reuniões realizadas depois de cada rodada da Liga VT27.
+histórico das reuniões realizadas depois de cada rodada do Brasileirão.
 
 - Vitória começa com +8, empate com +2 e derrota com −10.
 - Estar dentro da meta soma +3; ficar abaixo dela tira 4.
@@ -67,7 +65,7 @@ mostra a condição completa do elenco e ajuda o treinador a preparar substituto
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
-Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação; a Liga VT27 é a primeira competição do protótipo.
+Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação; o Brasileirão é a primeira competição nacional do protótipo.
 
 ## Desenvolvimento local
 
@@ -190,32 +188,30 @@ save. Não há sincronização entre dispositivos.
 Testes cobrem a semana completa com reload diário, migração, limites de energia,
 treino único, bloqueio de avanço e aplicação única de desgaste no fim da partida.
 
-## Liga VT27 (edição 04)
+## Brasileirão Série A (edição 11)
 
-Após a pré-temporada, abra Liga VT27 e escolha Entrar na Liga. O dia 8 é de
-preparação. São quatro clubes reais, seis rodadas de ida e
-volta nos dias 9, 12, 15, 18, 21 e 24. A temporada chega à avaliação final no dia 25.
+Após a pré-temporada, abra Brasileirão e escolha entrar na competição. O dia 8 é de
+preparação. São 20 clubes, 38 rodadas de turno e returno e avaliação final no dia 121.
 
 - Vitória: 3 pontos; empate: 1 ponto.
 - Desempate: pontos, vitórias, saldo, gols marcados e ordem alfabética.
-- Cada rodada tem dois jogos. O jogo dos outros clubes é gerado no início da sua
-  partida, persistido com ela e contabilizado apenas no apito final.
+- Cada rodada tem dez jogos. Os outros nove resultados são gerados no início da sua
+  partida, persistidos com ela e contabilizados apenas no apito final.
 - Os eventos usam home como referência ao time do usuário; a tabela converte
   corretamente esses gols para mandante/visitante conforme o calendário.
 - Mando de campo ainda não altera força ou probabilidade de vitória.
-- Objetivos: Flamengo campeão; Palmeiras e Corinthians no top 2; São Paulo no top 3.
-- A avaliação da diretoria é informativa; ainda não há demissão, economia,
-  rebaixamento ou renovação automática de temporada.
+- As metas variam entre disputar o título, buscar vagas na parte alta e permanecer
+  na Série A. Resultados, posição e finanças alteram a confiança da diretoria.
 - O elenco, energia, preparação e histórico de amistosos são preservados.
 
 Testes adicionais validam calendário equilibrado, pontuação, registro único da
-rodada e a temporada completa até o dia 25 com recargas de save em cada dia.
+rodada e a temporada completa até o dia 121 com recargas de save em cada dia.
 
 ## Continuidade da carreira (edição 05)
 
 A área Temporada apresenta pontos, avaliação da diretoria, jogos oficiais, gols,
-notas médias e evolução prevista para cada atleta. Após a sexta rodada, avance ao
-dia 25 para confirmar a próxima temporada.
+notas médias e evolução prevista para cada atleta. Após a 38ª rodada, avance ao
+dia 121 para confirmar a próxima temporada.
 
 - Pelo menos 3 titularidades na liga: +1 de nível individual.
 - Com média de notas >= 7,50: +2, em vez de +1.
@@ -226,8 +222,8 @@ dia 25 para confirmar a próxima temporada.
 - Nova temporada preserva treinador, clube, formação, escalação e evolução.
 - Energia volta a 100; calendário, preparação e tabela recomeçam no dia 1.
 - O arquivo guarda tabela, partidas, notas e ganhos de cada temporada concluída.
-- Formato da liga e clubes continuam iguais; idades, transferências, aposentadoria
-  e demissão ainda não são simulados.
+- Formato da liga e clubes continuam iguais; envelhecimento e aposentadoria ainda
+  não são simulados.
 
 Saves anteriores assumem temporada 1 e evolução zero. O formato continua usando a
 mesma chave local. Testes incluem duas temporadas completas, preservação do
