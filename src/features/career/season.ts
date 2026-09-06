@@ -15,20 +15,20 @@ export function isMatchDay(career: Career) { return (career.leagueActive ? [...f
 export function train(career: Career, kind: TrainingKind): Career {
   const day = career.day ?? 1
   const prep = preparation(career)
-  if (day > (career.leagueActive ? 24 : 7) || isMatchDay(career) || career.match || prep.sessions.some(s => s.day === day) || !sessions.some(s => s.kind === kind)) return career
+  if (career.board?.status === 'dismissed' || day > (career.leagueActive ? 24 : 7) || isMatchDay(career) || career.match || prep.sessions.some(s => s.day === day) || !sessions.some(s => s.kind === kind)) return career
   const delta = { physical: -8, technical: -10, tactical: -5, recovery: 20 }[kind]
   return { ...career, seasonVersion: 3, preparation: { energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.max(0, Math.min(100, energy(career, p.id) + delta))])), skill: Math.min(3, prep.skill + (kind === 'technical' ? 1 : 0)), fitness: Math.min(3, prep.fitness + (kind === 'physical' ? 1 : 0)), cohesion: Math.min(6, prep.cohesion + (kind === 'tactical' ? 2 : 0)), sessions: [...prep.sessions, { day, kind }] } }
 }
 export function advanceDay(career: Career): Career {
   const day = career.day ?? 1
   const prep = preparation(career)
-  if (day >= (career.leagueActive ? 25 : 8) || (isMatchDay(career) ? career.match?.cursor !== 9 : !prep.sessions.some(s => s.day === day))) return career
+  if (career.board?.status === 'dismissed' || day >= (career.leagueActive ? 25 : 8) || (isMatchDay(career) ? career.match?.cursor !== 9 : !prep.sessions.some(s => s.day === day))) return career
   career = commitRound(career)
   const history = career.match ? [...(career.history ?? []).filter(h => h.day !== day), { day, match: career.match }] : career.history ?? []
   return { ...career, seasonVersion: 3, day: day + 1, history, match: undefined, preparation: { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.min(100, energy(career, p.id) + 8)])) } }
 }
 export function progressMatch(career: Career, cursor: number): Career {
-  if (!career.match || career.match.cursor === 9) return career
+  if (career.board?.status === 'dismissed' || !career.match || career.match.cursor === 9) return career
   const match = career.match
   const next = Math.max(match.cursor, Math.min(9, Math.floor(cursor)))
   if (!Number.isFinite(next)) return career

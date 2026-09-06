@@ -38,3 +38,7 @@ transfers.ts concentra orçamento, salários, contratos, compras, vendas e
 renovações. Market.tsx apresenta a central de negociações. O elenco salvo na
 carreira alimenta escalação, treinos, partidas e evolução, permitindo que os
 mesmos sistemas financeiros sejam reutilizados no futuro modo dirigente.
+
+board.ts registra uma avaliação única depois de cada rodada oficial, combinando
+resultado, posição, meta e situação financeira. BoardPanel.tsx explica cada
+variação de confiança e encerra o comando quando o treinador é demitido.

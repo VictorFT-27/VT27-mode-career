@@ -17,18 +17,18 @@ Este documento mantém o escopo do projeto visível. Cada etapa entra primeiro n
 - Relatório, evolução individual, arquivo e novas temporadas.
 - Comando de partida, três mentalidades e até três substituições.
 - Mercado inicial, orçamento, folha salarial, vendas e contratos.
+- Objetivos mensuráveis, confiança da diretoria e risco de demissão.
 
 ## Em desenvolvimento
 
 - Equilíbrio dos valores, salários e decisões do mercado.
-- Integração da economia com metas e confiança da diretoria.
+- Equilíbrio da cobrança da diretoria ao longo de várias temporadas.
 
 ## Próximas etapas do modo treinador
 
-1. Objetivos, confiança da diretoria e risco de demissão.
-2. Lesões, suspensão e profundidade real do elenco.
-3. Competições adicionais e calendário de temporada completa.
-4. Estatísticas, recordes e conquistas da carreira.
+1. Lesões, suspensão e profundidade real do elenco.
+2. Competições adicionais e calendário de temporada completa.
+3. Estatísticas, recordes e conquistas da carreira.
 
 ## Sistemas compartilhados para os outros modos
 

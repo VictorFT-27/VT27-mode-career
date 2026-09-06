@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, types, progression, matchEngine, transfers
+let model, football, season, league, types, progression, matchEngine, transfers, board
 try {
-  for (const name of ['types', 'model', 'league', 'matchEngine', 'season', 'transfers', 'progression', 'football']) {
+  for (const name of ['types', 'model', 'transfers', 'board', 'league', 'matchEngine', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -17,6 +17,7 @@ try {
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
   matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
   transfers = await import(pathToFileURL(join(directory, 'transfers.mjs')))
+  board = await import(pathToFileURL(join(directory, 'board.mjs')))
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -74,6 +75,7 @@ test('v1 career migrates without losing identity and rejects duplicate starters'
   assert.deepEqual(model.loadCareer().roster, model.defaultRoster)
   assert.equal(Object.keys(model.loadCareer().contracts).length, 18)
   assert.equal(model.loadCareer().finances.budget, model.defaultFinances.aurora.budget)
+  assert.deepEqual(model.loadCareer().board, model.defaultBoard())
   saved = JSON.stringify({ ...career, lineup: Array(11).fill('p1') })
   assert.deepEqual(model.loadCareer().lineup, model.defaultLineup)
 })
@@ -259,6 +261,7 @@ test('renewal is gated, archives the season deeply and resets only temporary pre
   assert.deepEqual(renewed.history, [])
   assert.equal(renewed.preparation.skill, 0)
   assert.equal(renewed.preparation.cohesion, 0)
+  assert.deepEqual(board.boardOf(renewed), model.defaultBoard())
   assert.ok(Object.values(renewed.preparation.energy).every(n => n === 100))
   assert.deepEqual(renewed.archives[0].results, complete.leagueResults)
   assert.deepEqual(complete, before)
@@ -387,4 +390,38 @@ test('sales return 85 percent and expiring contracts can be renewed', () => {
   assert.equal(renewed.contracts.p12.seasons, 3)
   assert.equal(renewed.finances.budget, 22000 - Math.round(value * .1))
   assert.equal(transfers.renewContract(renewed, 'p12'), renewed)
+})
+
+test('board rewards results, target position and controlled finances once per round', () => {
+  const base = { ...career, finances: { budget: 22000, wageLimit: 1350 }, contracts: model.defaultContracts(), roster: [...model.defaultRoster] }
+  const result = { round: 1, home: 'aurora', away: 'vale', homeGoals: 2, awayGoals: 0 }
+  const reviewed = board.reviewRound(base, result, 1, 2)
+  assert.equal(reviewed.board.confidence, 82)
+  assert.equal(reviewed.board.status, 'secure')
+  assert.equal(reviewed.board.history.length, 1)
+  assert.equal(reviewed.board.history[0].delta, 12)
+  assert.equal(board.reviewRound(reviewed, result, 1, 2), reviewed)
+})
+
+test('repeated poor results create pressure and can dismiss the manager', () => {
+  let current = { ...career, finances: { budget: 22000, wageLimit: 1350 }, contracts: model.defaultContracts(), roster: [...model.defaultRoster] }
+  for (let round = 1; round <= 4; round++) current = board.reviewRound(current, { round, home: 'aurora', away: 'vale', homeGoals: 0, awayGoals: 2 }, 4, 2)
+  assert.equal(current.board.confidence, 18)
+  assert.equal(current.board.status, 'dismissed')
+  assert.equal(current.board.history.length, 4)
+  assert.equal(season.train({ ...current, day: 2 }, 'recovery').board.status, 'dismissed')
+  assert.equal(transfers.buyPlayer(current, 'm1'), current)
+  assert.equal(progression.canRenew({ ...current, day: 25, leagueActive: true }), false)
+})
+
+test('league final whistle records one board meeting alongside the round', () => {
+  let current = { ...career, day: 9, leagueActive: true, finances: { budget: 22000, wageLimit: 1350 }, contracts: model.defaultContracts(), roster: [...model.defaultRoster] }
+  current = { ...current, match: football.simulate(current, () => .2) }
+  current = season.progressMatch(current, 9)
+  assert.equal(current.board.lastRound, 1)
+  assert.equal(current.board.history.length, 1)
+  const recommitted = league.commitRound(current)
+  assert.equal(recommitted.board.history.length, 1)
+  model.saveCareer(recommitted)
+  assert.equal(model.loadCareer().board.history.length, 1)
 })

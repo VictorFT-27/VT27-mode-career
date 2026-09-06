@@ -20,6 +20,21 @@ oito atletas fictícios, vender reservas e acompanhar contratos e movimentaçõe
 Valores, salários e nomes são fictícios. Esta é a base econômica inicial; receitas,
 propostas de outros clubes e negociação de valores entram em etapas posteriores.
 
+## Diretoria e confiança (edição 08)
+
+A sala da Diretoria apresenta uma meta mensurável, confiança de 0 a 100 e o
+histórico das reuniões realizadas depois de cada rodada da Liga VT27.
+
+- Vitória começa com +8, empate com +2 e derrota com −10.
+- Estar dentro da meta soma +3; ficar abaixo dela tira 4.
+- Finanças controladas podem somar 1; usar mais de 95% da folha tira 3.
+- Não alcançar a meta na última rodada tira mais 8.
+- De 65 a 100, o treinador tem prestígio; de 45 a 64, estabilidade; de 21 a 44,
+  trabalha sob pressão; com 20 ou menos, é demitido.
+- Uma rodada é avaliada somente uma vez, mesmo após salvar e recarregar.
+- Uma demissão encerra as ações daquela carreira e preserva o histórico para
+  consulta.
+
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
 Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
 elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.

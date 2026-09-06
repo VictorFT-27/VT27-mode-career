@@ -16,7 +16,7 @@ export function playerStats(career: Career) {
 }
 export function canRenew(career: Career) {
   const results = career.leagueResults ?? []
-  return career.day === 25 && career.leagueActive === true && results.length === 12 && results.every(validLeagueResult) && new Set(results.map(r => r.round + ':' + r.home)).size === 12 && [1, 4, 7, ...leagueDays].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))
+  return career.board?.status !== 'dismissed' && career.day === 25 && career.leagueActive === true && results.length === 12 && results.every(validLeagueResult) && new Set(results.map(r => r.round + ':' + r.home)).size === 12 && [1, 4, 7, ...leagueDays].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))
 }
 export function renewSeason(career: Career): Career {
   if (!canRenew(career)) return career
@@ -25,5 +25,5 @@ export function renewSeason(career: Career): Career {
   const stats = playerStats(career)
   const archive: SeasonArchive = { number, clubId: career.clubId, results: structuredClone(career.leagueResults!), matches: structuredClone(career.history!), gains: Object.fromEntries(stats.map(p => [p.id, p.gain])) }
   const gains = Object.fromEntries(stats.map(p => [p.id, p.growth + p.gain]))
-  return { ...career, seasonNumber: number + 1, archives: [...(career.archives ?? []), archive], playerGrowth: Object.fromEntries(allPlayers.map(player => [player.id, gains[player.id] ?? career.playerGrowth?.[player.id] ?? 0])), contracts: Object.fromEntries(Object.entries(contractsOf(career)).map(([id, contract]) => [id, { ...contract, seasons: Math.max(1, contract.seasons - 1) }])), day: 1, match: undefined, history: [], leagueActive: false, leagueResults: [], preparation: { energy: Object.fromEntries(rosterOf(career).map(p => [p.id, 100])), skill: 0, fitness: 0, cohesion: 0, sessions: [] } }
+  return { ...career, seasonNumber: number + 1, archives: [...(career.archives ?? []), archive], playerGrowth: Object.fromEntries(allPlayers.map(player => [player.id, gains[player.id] ?? career.playerGrowth?.[player.id] ?? 0])), contracts: Object.fromEntries(Object.entries(contractsOf(career)).map(([id, contract]) => [id, { ...contract, seasons: Math.max(1, contract.seasons - 1) }])), board: undefined, day: 1, match: undefined, history: [], leagueActive: false, leagueResults: [], preparation: { energy: Object.fromEntries(rosterOf(career).map(p => [p.id, 100])), skill: 0, fitness: 0, cohesion: 0, sessions: [] } }
 }

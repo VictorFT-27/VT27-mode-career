@@ -22,13 +22,13 @@ export function resolveEvent(match: Match, index: number): MatchEvent {
 }
 
 export function setMentality(career: Career, mentality: Mentality): Career {
-  if (!career.match || career.match.cursor === 9 || !Object.hasOwn(plans, mentality)) return career
+  if (career.board?.status === 'dismissed' || !career.match || career.match.cursor === 9 || !Object.hasOwn(plans, mentality)) return career
   return { ...career, match: { ...career.match, mentality } }
 }
 
 export function substitute(career: Career, outId: string, inId: string): Career {
   const match = career.match
-  if (!match || match.cursor === 0 || match.cursor === 9 || (match.substitutions?.length ?? 0) >= 3 || !match.lineup.includes(outId) || match.lineup.includes(inId) || match.substitutions?.some(change => change.outId === inId)) return career
+  if (career.board?.status === 'dismissed' || !match || match.cursor === 0 || match.cursor === 9 || (match.substitutions?.length ?? 0) >= 3 || !match.lineup.includes(outId) || match.lineup.includes(inId) || match.substitutions?.some(change => change.outId === inId)) return career
   const outIndex = match.lineup.indexOf(outId)
   const incoming = allPlayers.find(candidate => candidate.id === inId)
   if (!incoming || (outIndex === 0) !== (incoming.position === 'GOL')) return career

@@ -1,4 +1,5 @@
 import { clubs, type Career, validLeagueResult } from './model'
+import { isDismissed, reviewRound } from './board'
 import { leagueDays, leagueRounds, type LeagueResult } from './types'
 export function leagueFixture(career: Career) {
   if (!career.leagueActive) return undefined
@@ -8,7 +9,7 @@ export function leagueFixture(career: Career) {
   return { round: index + 1, home, away, opponent: home === career.clubId ? away : home, atHome: home === career.clubId }
 }
 export function startLeague(career: Career): Career {
-  if (career.leagueActive || career.day !== 8 || ![1, 4, 7].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))) return career
+  if (isDismissed(career) || career.leagueActive || career.day !== 8 || ![1, 4, 7].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))) return career
   return { ...career, leagueActive: true, leagueResults: [] }
 }
 export function commitRound(career: Career): Career {
@@ -21,7 +22,9 @@ export function commitRound(career: Career): Career {
   const validOther = validLeagueResult(other) && other.round === fixture.round && other.home !== fixture.home && other.away !== fixture.away
   const results = [own, ...(validOther ? [other] : [])]
   const existing = career.leagueResults ?? []
-  return { ...career, leagueResults: [...existing.filter(r => r.round !== fixture.round), ...results] }
+  const next = { ...career, leagueResults: [...existing.filter(r => r.round !== fixture.round), ...results] }
+  const rank = standings(next.leagueResults).findIndex(row => row.id === career.clubId) + 1
+  return reviewRound(next, own, rank, boardTarget(career.clubId))
 }
 export function standings(results: LeagueResult[]) {
   const rows = clubs.map(c => ({ id: c.id, name: c.name, played: 0, points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, difference: 0 }))

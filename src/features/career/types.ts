@@ -25,3 +25,6 @@ export type SeasonArchive = { number: number; clubId: string; results: LeagueRes
 export type Contract = { seasons: number; wage: number; value: number }
 export type Finances = { budget: number; wageLimit: number }
 export type TransferRecord = { season: number; playerId: string; kind: 'buy' | 'sell' | 'renew'; amount: number }
+export type BoardStatus = 'secure' | 'stable' | 'pressure' | 'dismissed'
+export type BoardReview = { round: number; delta: number; confidence: number; rank: number; result: 'win' | 'draw' | 'loss'; reason: string }
+export type BoardState = { confidence: number; lastRound: number; status: BoardStatus; history: BoardReview[] }
