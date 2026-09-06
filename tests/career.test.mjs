@@ -7,13 +7,14 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, types
+let model, football, season, league, types, progression
 try {
-  for (const name of ['types', 'model', 'league', 'season', 'football']) {
+  for (const name of ['types', 'model', 'league', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
   }
+  progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -205,4 +206,81 @@ test('official season preserves six rounds and both fixture results through relo
   assert.ok(table.every(row => row.played === 6))
   assert.equal(table.find(row => row.id === career.clubId).points, 18)
   assert.equal(season.advanceDay(current), current)
+})
+
+function finishSeason(input) {
+  let current = input
+  for (let day = current.day ?? 1; day <= 24; day++) {
+    if (day === 8) current = league.startLeague(current)
+    current = season.isMatchDay(current) ? season.progressMatch({ ...current, match: football.simulate(current, () => .2) }, 9) : season.train(current, 'recovery')
+    current = season.advanceDay(current)
+  }
+  return current
+}
+test('individual stats exclude friendlies and unfinished matches and include final whistle once', () => {
+  const match = football.simulate(career, () => .2)
+  let current = { ...career, day: 9, leagueActive: true, history: [{ day: 1, match: { ...match, cursor: 9 } }], match: { ...match, cursor: 8 } }
+  assert.ok(progression.playerStats(current).every(p => p.appearances === 0))
+  current.match.cursor = 9
+  assert.equal(progression.playerStats(current).find(p => p.id === 'p1').appearances, 1)
+  current.history.push({ day: 9, match: current.match })
+  assert.equal(progression.playerStats(current).find(p => p.id === 'p1').appearances, 1)
+  assert.equal(progression.playerStats(current).reduce((sum, p) => sum + p.goals, 0), 9)
+})
+test('growth requires three official games, respects rating threshold and permanent cap', () => {
+  const match = { ...football.simulate(career), cursor: 9 }
+  const history = [9, 12, 15].map(day => ({ day, match: { ...match, ratings: match.ratings.map(r => ({ ...r, value: 7.5 })) } }))
+  const current = { ...career, history }
+  assert.equal(progression.playerStats(current).find(p => p.id === 'p1').gain, 2)
+  assert.equal(progression.playerStats({ ...current, history: history.slice(0, 2) }).find(p => p.id === 'p1').gain, 0)
+  assert.equal(progression.playerStats({ ...current, playerGrowth: { p1: 9 } }).find(p => p.id === 'p1').gain, 1)
+  assert.equal(progression.playerStats({ ...current, playerGrowth: { p1: 10 } }).find(p => p.id === 'p1').gain, 0)
+  assert.equal(progression.playerStats(current).find(p => p.id === 'p12').gain, 0)
+  const baseline = football.strength(model.defaultLineup, '4-3-3', career)
+  assert.ok(football.strength(model.defaultLineup, '4-3-3', { ...career, playerGrowth: Object.fromEntries(model.defaultLineup.map(id => [id, 2])) }) > baseline)
+})
+test('renewal is gated, archives the season deeply and resets only temporary preparation', () => {
+  assert.equal(progression.renewSeason(career), career)
+  const complete = finishSeason({ ...career, day: 1, seasonNumber: 1 })
+  assert.ok(progression.canRenew(complete))
+  assert.equal(progression.renewSeason({ ...complete, day: 24 }).day, 24)
+  const before = structuredClone(complete)
+  const renewed = progression.renewSeason(complete)
+  assert.equal(renewed.seasonNumber, 2)
+  assert.equal(renewed.day, 1)
+  assert.equal(renewed.name, career.name)
+  assert.equal(renewed.clubId, career.clubId)
+  assert.equal(renewed.leagueActive, false)
+  assert.deepEqual(renewed.history, [])
+  assert.equal(renewed.preparation.skill, 0)
+  assert.equal(renewed.preparation.cohesion, 0)
+  assert.ok(Object.values(renewed.preparation.energy).every(n => n === 100))
+  assert.deepEqual(renewed.archives[0].results, complete.leagueResults)
+  assert.deepEqual(complete, before)
+  assert.notEqual(renewed.archives[0].matches, complete.history)
+  assert.equal(progression.renewSeason(renewed), renewed)
+  model.saveCareer(renewed)
+  const loaded = model.loadCareer()
+  assert.equal(loaded.seasonNumber, 2)
+  assert.equal(loaded.archives[0].matches.length, 9)
+  assert.deepEqual(loaded.playerGrowth, renewed.playerGrowth)
+})
+test('two full seasons can be renewed without overwriting archived fixtures', () => {
+  let current = progression.renewSeason(finishSeason({ ...career, day: 1, seasonNumber: 1 }))
+  const first = structuredClone(current.archives[0])
+  current = progression.renewSeason(finishSeason(current))
+  model.saveCareer(current); current = model.loadCareer()
+  assert.equal(current.seasonNumber, 3)
+  assert.deepEqual(current.archives.map(a => a.number), [1, 2])
+  assert.deepEqual(current.archives[0], first)
+  assert.ok(Object.values(current.playerGrowth).every(n => n >= 0 && n <= 10))
+})
+test('legacy saves default to first season and corrupt archives do not discard the coach', () => {
+  saved = JSON.stringify({ ...career, archives: [null, { number: 1 }], playerGrowth: { p1: 99, p2: -10 } })
+  const loaded = model.loadCareer()
+  assert.equal(loaded.name, career.name)
+  assert.equal(loaded.seasonNumber, 1)
+  assert.deepEqual(loaded.archives, [])
+  assert.equal(loaded.playerGrowth.p1, 10)
+  assert.equal(loaded.playerGrowth.p2, 0)
 })

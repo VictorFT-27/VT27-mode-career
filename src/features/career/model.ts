@@ -1,7 +1,7 @@
-import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, type LeagueResult } from './types'
+import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, type LeagueResult, type SeasonArchive } from './types'
 export type CareerMode = 'coach' | 'player' | 'director'
 export type Club = { id: string; name: string; initials: string; city: string; color: string; reputation: string; objective: string; description: string }
-export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; day?: number; match?: Match; seasonVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[] }
+export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; day?: number; match?: Match; seasonVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[] }
 export const modes: { id: CareerMode; title: string; subtitle: string; number: string; description: string; available: boolean }[] = [
   { id: 'coach', title: 'Treinador', subtitle: 'À beira do campo', number: '01', description: 'Dê identidade ao time. Escolha seu clube, organize o elenco e prepare sua estratégia.', available: true },
   { id: 'player', title: 'Jogador', subtitle: 'Dentro das quatro linhas', number: '02', description: 'Construa sua trajetória em campo. Treinos, evolução e escolhas que definem uma carreira.', available: false },
@@ -49,6 +49,11 @@ function validMatch(value: unknown): value is Match {
   const m = value as Match
   return clubs.some(c => c.id === m.opponent) && validLineup(m.lineup) && Object.hasOwn(positions, m.formation) && Number.isFinite(m.strength) && m.strength >= 0 && m.strength <= 100 && Number.isInteger(m.cursor) && m.cursor >= 0 && m.cursor <= 9 && Array.isArray(m.events) && m.events.length === 9 && m.events.every((e, i) => e && e.minute === (i + 1) * 10 && ['home', 'away'].includes(e.side) && typeof e.goal === 'boolean' && typeof e.text === 'string' && e.text.length < 250 && (e.playerId === undefined || m.lineup.includes(e.playerId))) && Array.isArray(m.ratings) && m.ratings.length === 11 && m.ratings.every(r => r && typeof r === 'object') && new Set(m.ratings.map(r => r.playerId)).size === 11 && m.ratings.every(r => m.lineup.includes(r.playerId) && Number.isFinite(r.value) && r.value >= 1 && r.value <= 10)
 }
+function validArchive(value: unknown): value is SeasonArchive {
+  if (!value || typeof value !== 'object') return false
+  const a = value as SeasonArchive
+  return Number.isSafeInteger(a.number) && a.number >= 1 && clubs.some(c => c.id === a.clubId) && Array.isArray(a.results) && a.results.length === 12 && a.results.every(validLeagueResult) && new Set(a.results.map(r => r.round + ':' + r.home)).size === 12 && Array.isArray(a.matches) && a.matches.length === 9 && a.matches.every(h => h && [...fixtureDays, ...leagueDays].includes(h.day) && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== a.clubId) && new Set(a.matches.map(h => h.day)).size === 9 && !!a.gains && typeof a.gains === 'object' && squad.every(p => Number.isInteger(a.gains[p.id]) && a.gains[p.id] >= 0 && a.gains[p.id] <= 2)
+}
 const key = 'vt27.career.v1'
 export function loadCareer(): Career | null {
   try {
@@ -68,10 +73,13 @@ export function loadCareer(): Career | null {
     const missing = calendar.find(d => d < day && !history.some(h => h.day === d))
     if (missing !== undefined) { day = missing; match = undefined; history = history.filter(h => h.day < day) }
     const bounded = (n: unknown, max: number) => typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0
+    const archives = Array.isArray(c.archives) ? c.archives.filter(validArchive).filter((a, i, all) => all.findIndex(item => item.number === a.number) === i).sort((a, b) => a.number - b.number) : []
+    const seasonNumber = Math.max(1, Number.isSafeInteger(c.seasonNumber) && c.seasonNumber! > 0 ? c.seasonNumber! : 1, ...archives.map(a => a.number + 1))
+    const playerGrowth = Object.fromEntries(squad.map(p => [p.id, Math.floor(bounded(c.playerGrowth?.[p.id], 10))]))
     const prep = c.preparation
     const energy = Object.fromEntries(squad.map(p => [p.id, typeof prep?.energy?.[p.id] === 'number' ? bounded(prep.energy[p.id], 100) : 100]))
     const sessions = Array.isArray(prep?.sessions) ? prep.sessions.filter(s => s && (Number.isInteger(s.day) && s.day >= 2 && s.day <= 23 && !calendar.includes(s.day)) && s.day <= day && ['physical', 'technical', 'tactical', 'recovery'].includes(s.kind)).filter((s, i, all) => all.findIndex(item => item.day === s.day) === i) : []
-    return { ...career, seasonVersion: 3, lineup: validLineup(c.lineup) ? c.lineup : [...defaultLineup], day, match, history, leagueActive: active, leagueResults: active && Array.isArray(c.leagueResults) ? c.leagueResults.filter(r => validLeagueResult(r) && (leagueDays[r.round - 1] < day || (leagueDays[r.round - 1] === day && match?.cursor === 9))).filter((r, i, all) => all.findIndex(item => item.round === r.round && item.home === r.home) === i) : [], preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
+    return { ...career, seasonNumber, playerGrowth, archives, seasonVersion: 3, lineup: validLineup(c.lineup) ? c.lineup : [...defaultLineup], day, match, history, leagueActive: active, leagueResults: active && Array.isArray(c.leagueResults) ? c.leagueResults.filter(r => validLeagueResult(r) && (leagueDays[r.round - 1] < day || (leagueDays[r.round - 1] === day && match?.cursor === 9))).filter((r, i, all) => all.findIndex(item => item.round === r.round && item.home === r.home) === i) : [], preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
   } catch { return null }
 }
 export function saveCareer(career: Career): boolean {

@@ -23,3 +23,8 @@ league.ts mantém calendário consultável, transição para liga, classificaç�
 registro dos dois resultados de cada rodada. League.tsx apresenta tabela,
 confrontos e objetivos da diretoria. Os mesmos atletas e o motor de partidas são
 usados na liga e na pré-temporada; nenhum sistema paralelo por modo foi criado.
+
+progression.ts deriva estatísticas dos eventos e notas das partidas oficiais,
+aplica evolução permanente e arquiva a temporada. SeasonReview.tsx apresenta o
+relatório e a confirmação para iniciar outra temporada. A base individual pode
+ser reutilizada futuramente pelo modo jogador, sem duplicar as regras de partida.

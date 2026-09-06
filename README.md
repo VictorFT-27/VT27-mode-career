@@ -130,7 +130,7 @@ treino único, bloqueio de avanço e aplicação única de desgaste no fim da pa
 
 Após a pré-temporada, abra Liga VT27 e escolha Entrar na Liga. O dia 8 é de
 preparação. São quatro clubes (incluindo Atlético do Vale), seis rodadas de ida e
-volta nos dias 9, 12, 15, 18, 21 e 24. A temporada termina no dia 25.
+volta nos dias 9, 12, 15, 18, 21 e 24. A temporada chega à avaliação final no dia 25.
 
 - Vitória: 3 pontos; empate: 1 ponto.
 - Desempate: pontos, vitórias, saldo, gols marcados e ordem alfabética.
@@ -146,3 +146,25 @@ volta nos dias 9, 12, 15, 18, 21 e 24. A temporada termina no dia 25.
 
 Testes adicionais validam calendário equilibrado, pontuação, registro único da
 rodada e a temporada completa até o dia 25 com recargas de save em cada dia.
+
+## Continuidade da carreira (edição 05)
+
+A área Temporada apresenta pontos, avaliação da diretoria, jogos oficiais, gols,
+notas médias e evolução prevista para cada atleta. Após a sexta rodada, avance ao
+dia 25 para confirmar a próxima temporada.
+
+- Pelo menos 3 titularidades na liga: +1 de nível individual.
+- Com média de notas >= 7,50: +2, em vez de +1.
+- Teto de evolução acumulada: +10 por atleta. Sem ganho por amistosos.
+- Os ganhos só são aplicados na transição, uma vez por temporada.
+- Nível individual permanente entra no cálculo de força e aparece no elenco e
+  na prancheta. Bônus coletivo de treino técnico continua separado.
+- Nova temporada preserva treinador, clube, formação, escalação e evolução.
+- Energia volta a 100; calendário, preparação e tabela recomeçam no dia 1.
+- O arquivo guarda tabela, partidas, notas e ganhos de cada temporada concluída.
+- Formato da liga e clubes continuam iguais; idades, transferências, aposentadoria
+  e demissão ainda não são simulados.
+
+Saves anteriores assumem temporada 1 e evolução zero. O formato continua usando a
+mesma chave local. Testes incluem duas temporadas completas, preservação do
+arquivo, bloqueio de transição antecipada e limites de evolução.

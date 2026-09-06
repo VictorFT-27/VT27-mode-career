@@ -19,3 +19,4 @@ export const leagueRounds = [
   [['porto', 'aurora'], ['vale', 'serra']],
 ]
 export const leagueDays = [9, 12, 15, 18, 21, 24]
+export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; match: Match }[]; gains: Record<string, number> }

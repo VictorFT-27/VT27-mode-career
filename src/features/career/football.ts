@@ -1,3 +1,4 @@
+import { overall } from './progression'
 import { leagueFixture } from './league'
 import { energy, preparation } from './season'
 import { clubs, defaultLineup, squad, validLineup, type Career } from './model'
@@ -11,7 +12,7 @@ export function fit(id: string, position: string) {
   return .86
 }
 export function strength(lineup: string[], formation: Formation, career?: Career) {
-  return Math.round(lineup.reduce((sum, id, i) => sum + (player(id).rating + (career ? preparation(career).skill : 0)) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + (career ? preparation(career).cohesion : 0))
+  return Math.round(lineup.reduce((sum, id, i) => sum + ((career ? overall(career, id) : player(id).rating) + (career ? preparation(career).skill : 0)) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + (career ? preparation(career).cohesion : 0))
 }
 export function swap(lineup: string[], slot: number, id: string): string[] {
   if (!Number.isInteger(slot) || slot < 0 || slot > 10 || !squad.some(p => p.id === id)) return lineup
