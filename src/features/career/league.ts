@@ -1,6 +1,7 @@
 import { clubs, type Career, validLeagueResult } from './model'
 import { isDismissed, reviewRound } from './board'
 import { leagueDays, leagueRounds, type LeagueResult } from './types'
+import { createCupState } from './cupData'
 export function leagueFixture(career: Career) {
   if (!career.leagueActive) return undefined
   const index = leagueDays.indexOf(career.day ?? 1)
@@ -10,7 +11,7 @@ export function leagueFixture(career: Career) {
 }
 export function startLeague(career: Career): Career {
   if (isDismissed(career) || career.leagueActive || career.day !== 8 || ![1, 4, 7].every(day => career.history?.some(h => h.day === day && h.match.cursor === 9))) return career
-  return { ...career, leagueActive: true, leagueResults: [] }
+  return { ...career, leagueActive: true, leagueResults: [], cup: createCupState(career.seasonNumber ?? 1) }
 }
 export function commitRound(career: Career): Career {
   const fixture = leagueFixture(career)

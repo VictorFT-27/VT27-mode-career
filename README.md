@@ -2,7 +2,7 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
-## Futebol brasileiro real (edição 11)
+## Temporada nacional e história (edição 13)
 
 O pacote nacional traz os 20 participantes da Série A 2026, cada um com 18 atletas
 vinculados ao próprio clube: são 360 jogadores na base inicial. O mercado também
@@ -13,6 +13,13 @@ criadas para o equilíbrio do simulador e não representam dados oficiais.
 - Saves antigos mantêm treinador, clube, elenco, contratos e evolução. Uma liga curta
   que esteja em andamento recomeça na pré-temporada para entrar no novo calendário.
 - O Brasileirão usa turno e returno, com 38 rodadas e dez partidas por rodada.
+- A Copa do Brasil reúne os 20 clubes da Série A e 12 classificados reais de outras
+  divisões. Há ida e volta da 5ª fase até a semifinal, pênaltis em empate agregado e
+  final em jogo único.
+- Avançar na copa rende premiações ao orçamento. O chaveamento muda a cada temporada.
+- A área Estatísticas registra gols, assistências, notas, recordes, títulos e conquistas
+  ao longo de toda a carreira.
+- Uma carreira antiga entra na próxima fase disponível da Copa sem perder o progresso.
 
 ## Mercado e contratos (edição 07)
 
@@ -63,9 +70,9 @@ mostra a condição completa do elenco e ajuda o treinador a preparar substituto
   disciplinar.
 
 Base inicial do simulador de carreira VT27, construída com React, TypeScript e Vite.
-Primeiras telas: seleção de modos, criação de treinador, escolha de clube, painel,
-elenco de 18 atletas, escalação interativa e primeiro amistoso simulado. Carreira salva apenas neste navegador.
-Jogador e dirigente estão planejados. A simulação é simplificada; ainda não há autenticação; o Brasileirão é a primeira competição nacional do protótipo.
+Carreira salva apenas neste navegador. Jogador e dirigente estão planejados. A
+simulação continua em evolução e ainda não há autenticação ou sincronização entre
+dispositivos.
 
 ## Desenvolvimento local
 
@@ -158,13 +165,13 @@ credenciais. Variáveis com prefixo `VITE_` ficam públicas no código do navega
 4. Avance os nove lances ou veja o resultado final. Resultado e progresso ficam
    salvos no início e a cada avanço, impedindo novo sorteio ao recarregar.
 5. Confira as notas e avance ao dia 02. Abra Calendário para escolher a preparação.
-6. Complete os sete dias, com amistosos nos dias 1, 4 e 7 e quatro dias de treino.
-   Os resultados arquivados permanecem disponíveis para consulta.
+6. Complete os sete dias, inicie a temporada nacional e acompanhe Brasileirão e
+   Copa do Brasil pelo calendário.
+7. Abra Estatísticas para acompanhar artilharia, assistências, recordes e conquistas.
 
 A força considera nível e adequação à posição. O motor cria nove oportunidades,
 com posse da chance ponderada pela força e conversão de 30%. É uma simulação
-inicial, não um modelo realista de futebol. Não existem substituições durante a
-partida. O esquema e os titulares ficam congelados no registro desse amistoso.
+inicial, ainda distante de um modelo completo do futebol real.
 
 Saves anteriores recebem automaticamente titulares e dia inicial. O armazenamento
 continua local à origem do navegador: outro endereço de preview pode ter outro

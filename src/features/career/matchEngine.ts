@@ -1,4 +1,4 @@
-import { allPlayers, clubs, type Career } from './model'
+import { allClubs, allPlayers, type Career } from './model'
 import { type Match, type MatchEvent, type Mentality } from './types'
 
 const plans: Record<Mentality, { chance: number; ownGoal: number; rivalGoal: number }> = {
@@ -16,9 +16,13 @@ export function resolveEvent(match: Match, index: number): MatchEvent {
   const goalChance = Math.max(.08, Math.min(.5, .3 + (side === 'home' ? plan.ownGoal : plan.rivalGoal)))
   const goal = existing.goalRoll < goalChance
   const id = match.lineup[1 + Math.min(9, Math.floor(existing.playerRoll * 10))]
-  const opponent = clubs.find(club => club.id === match.opponent)!
+  const assistId = existing.assistRoll === undefined ? undefined : match.lineup[1 + Math.min(9, Math.floor(existing.assistRoll * 10))]
+  const opponent = allClubs.find(club => club.id === match.opponent)!
   const actor = side === 'home' ? allPlayers.find(candidate => candidate.id === id)!.name : opponent.name
-  return { ...existing, side, goal, text: goal ? `Gol! ${actor} aproveita a oportunidade e marca.` : `${actor} cria uma chance, mas a jogada termina sem gol.`, ...(side === 'home' ? { playerId: id } : { playerId: undefined }) }
+  const clean = { ...existing }
+  delete clean.playerId
+  delete clean.assistPlayerId
+  return { ...clean, side, goal, text: goal ? `Gol! ${actor} aproveita a oportunidade e marca.` : `${actor} cria uma chance, mas a jogada termina sem gol.`, ...(side === 'home' ? { playerId: id, ...(goal && assistId !== id ? { assistPlayerId: assistId } : {}) } : {}) }
 }
 
 export function setMentality(career: Career, mentality: Mentality): Career {
@@ -56,7 +60,8 @@ export function finalizeRatings(match: Match): Match {
   const ratings = participants.map(id => {
     const initial = match.ratings.find(rating => rating.playerId === id)?.value ?? 6.5
     const goals = match.events.filter(event => event.goal && event.playerId === id).length
-    const value = Math.max(1, Math.min(10, initial + goals * .5 + (home - away) * .12 + (minutesPlayed(match, id) / 90 - .5) * .25))
+    const assists = match.events.filter(event => event.goal && event.assistPlayerId === id).length
+    const value = Math.max(1, Math.min(10, initial + goals * .5 + assists * .25 + (home - away) * .12 + (minutesPlayed(match, id) / 90 - .5) * .25))
     return { playerId: id, value: Math.round(value * 10) / 10 }
   })
   return { ...match, ratings, ratingsFinalized: true }

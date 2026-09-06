@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, types, progression, matchEngine, transfers, board, availability
+let model, football, season, league, cup, cupData, types, progression, matchEngine, transfers, board, availability
 try {
-  for (const name of ['types', 'realData', 'model', 'transfers', 'board', 'league', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'realData', 'cupData', 'model', 'transfers', 'board', 'league', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -20,6 +20,8 @@ try {
   board = await import(pathToFileURL(join(directory, 'board.mjs')))
   availability = await import(pathToFileURL(join(directory, 'availability.mjs')))
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
+  cup = await import(pathToFileURL(join(directory, 'cup.mjs')))
+  cupData = await import(pathToFileURL(join(directory, 'cupData.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
   season = await import(pathToFileURL(join(directory, 'season.mjs')))
@@ -200,6 +202,29 @@ test('league table awards points and resolves draws, wins and goal difference', 
   assert.equal(table.find(r => r.id === 'sao-paulo').difference, -2)
   assert.equal(table.reduce((s, r) => s + r.goalsFor, 0), table.reduce((s, r) => s + r.goalsAgainst, 0))
 })
+test('national cup starts with 32 real clubs and advances over two legs', () => {
+  let current = { ...career, day: 20, leagueActive: true, cup: cupData.createCupState(1), finances: { budget: 22000, wageLimit: 1350 } }
+  assert.equal(current.cup.ties.length, 16)
+  assert.equal(new Set(current.cup.ties.flatMap(tie => [tie.home, tie.away])).size, 32)
+  assert.ok(cup.cupFixture(current))
+  current = season.progressMatch({ ...current, match: football.simulate(current, () => .2) }, 9)
+  assert.equal(current.cup.stage, 5)
+  assert.equal(current.cup.results.length, 16)
+  current = season.advanceDay(current)
+  current = { ...current, day: 23, match: undefined }
+  current = season.progressMatch({ ...current, match: football.simulate(current, () => .2) }, 9)
+  assert.equal(current.cup.stage, 6)
+  assert.equal(current.cup.ties.length, 8)
+  assert.equal(current.cup.prize, 1500)
+  assert.equal(current.finances.budget, 23500)
+})
+
+test('a running save can join the next available cup stage', () => {
+  const migrated = cupData.createCupStateForDay(1, 50, career.clubId)
+  assert.equal(migrated.stage, 7)
+  assert.equal(migrated.ties.length, 4)
+  assert.ok(migrated.ties.some(tie => [tie.home, tie.away].includes(career.clubId)))
+})
 test('official season preserves 38 rounds and all fixture results through reloads', () => {
   let current = { ...career, day: 1, seasonVersion: 3 }
   assert.equal(league.startLeague(current), current)
@@ -217,21 +242,25 @@ test('official season preserves 38 rounds and all fixture results through reload
       const fixture = league.leagueFixture(current)
       current = { ...current, match: football.simulate(current, () => .2) }
       model.saveCareer(current); current = model.loadCareer()
-      assert.equal(current.match.otherResults.length, 9)
-      assert.ok(current.match.otherResults.every(result => result.round === fixture.round))
-      assert.equal((current.leagueResults ?? []).length, (fixture.round - 1) * 10)
+      if (fixture) {
+        assert.equal(current.match.otherResults.length, 9)
+        assert.ok(current.match.otherResults.every(result => result.round === fixture.round))
+        assert.equal((current.leagueResults ?? []).length, (fixture.round - 1) * 10)
+      } else assert.equal(current.match.otherResults, undefined)
       current = season.progressMatch(current, 9)
-      assert.equal(current.leagueResults.length, fixture.round * 10)
-      assert.deepEqual(league.commitRound(current).leagueResults, current.leagueResults)
-      const own = current.leagueResults.find(r => r.round === fixture.round && [r.home, r.away].includes(current.clubId))
-      assert.equal(fixture.atHome ? own.homeGoals : own.awayGoals, 9)
+      if (fixture) {
+        assert.equal(current.leagueResults.length, fixture.round * 10)
+        assert.deepEqual(league.commitRound(current).leagueResults, current.leagueResults)
+        const own = current.leagueResults.find(r => r.round === fixture.round && [r.home, r.away].includes(current.clubId))
+        assert.equal(fixture.atHome ? own.homeGoals : own.awayGoals, 9)
+      }
     } else current = season.train(current, 'recovery')
     current = season.advanceDay(current)
     model.saveCareer(current); current = model.loadCareer()
     assert.ok(current)
   }
   assert.equal(current.day, types.leagueEndDay)
-  assert.equal(current.history.length, 41)
+  assert.equal(current.history.length, 50)
   assert.equal(current.leagueResults.length, 380)
   const table = league.standings(current.leagueResults)
   assert.ok(table.every(row => row.played === 38))
@@ -294,7 +323,7 @@ test('renewal is gated, archives the season deeply and resets only temporary pre
   model.saveCareer(renewed)
   const loaded = model.loadCareer()
   assert.equal(loaded.seasonNumber, 2)
-  assert.equal(loaded.archives[0].matches.length, 41)
+  assert.equal(loaded.archives[0].matches.length, 50)
   assert.deepEqual(loaded.playerGrowth, renewed.playerGrowth)
 })
 test('two full seasons can be renewed without overwriting archived fixtures', () => {

@@ -1,5 +1,5 @@
 export type Mentality = 'defensive' | 'balanced' | 'attacking'
-export type MatchEvent = { minute: number; side: 'home' | 'away'; goal: boolean; text: string; playerId?: string; sideRoll?: number; goalRoll?: number; playerRoll?: number }
+export type MatchEvent = { minute: number; side: 'home' | 'away'; goal: boolean; text: string; playerId?: string; assistPlayerId?: string; sideRoll?: number; goalRoll?: number; playerRoll?: number; assistRoll?: number }
 export type Substitution = { minute: number; outId: string; inId: string }
 export type Match = { opponent: string; lineup: string[]; startingLineup?: string[]; formation: string; events: MatchEvent[]; cursor: number; ratings: { playerId: string; value: number }[]; strength: number; otherResult?: LeagueResult; otherResults?: LeagueResult[]; mentality?: Mentality; substitutions?: Substitution[]; ratingsFinalized?: boolean; disciplineRolls?: number[]; yellowCards?: string[]; injury?: { playerId: string; matches: number }; disciplineFinalized?: boolean }
 export type Formation = '4-3-3' | '4-4-2' | '3-5-2'
@@ -31,7 +31,11 @@ export const leagueRounds = roundRobin(leagueClubIds)
 export const leagueDays = Array.from({ length: leagueRounds.length }, (_, index) => 9 + index * 3)
 export const leagueEndDay = leagueDays[leagueDays.length - 1] + 1
 export const leagueResultCount = leagueRounds.length * leagueRounds[0].length
-export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; match: Match }[]; gains: Record<string, number> }
+export type CupStage = 5 | 6 | 7 | 8 | 9
+export type CupTie = { stage: CupStage; home: string; away: string }
+export type CupResult = { stage: CupStage; leg: 1 | 2; home: string; away: string; homeGoals: number; awayGoals: number; penaltiesWinner?: string }
+export type CupState = { stage: CupStage; ties: CupTie[]; results: CupResult[]; eliminated: boolean; prize: number; champion?: string }
+export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; match: Match }[]; gains: Record<string, number>; cup?: CupState }
 export type Contract = { seasons: number; wage: number; value: number }
 export type Finances = { budget: number; wageLimit: number }
 export type TransferRecord = { season: number; playerId: string; kind: 'buy' | 'sell' | 'renew'; amount: number }
