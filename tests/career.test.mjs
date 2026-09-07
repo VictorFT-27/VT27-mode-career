@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, world, scouting, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
+let model, football, season, league, cup, cupData, world, scouting, negotiations, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
 try {
-  for (const name of ['types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'scouting', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'scouting', 'transfers', 'negotiations', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -32,6 +32,7 @@ try {
   cupData = await import(pathToFileURL(join(directory, 'cupData.mjs')))
   world = await import(pathToFileURL(join(directory, 'world.mjs')))
   scouting = await import(pathToFileURL(join(directory, 'scouting.mjs')))
+  negotiations = await import(pathToFileURL(join(directory, 'negotiations.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   tactics = await import(pathToFileURL(join(directory, 'tactics.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -500,6 +501,43 @@ test('compatible missions reveal player reports over calendar cycles', () => {
   assert.equal(scouting.knowledgeOf({ ...current, day: 5 }, target.id), 2)
   assert.equal(scouting.knowledgeOf({ ...current, day: 7 }, target.id), 3)
   assert.ok(scouting.potentialOf(current, target.id) >= target.rating)
+})
+test('purchase negotiation supports counteroffer, personal terms and completion', () => {
+  let current = model.createCareer('Victor', 'flamengo')
+  const target = model.allPlayers.find(player => world.clubOf(current, player.id) !== current.clubId && player.value < current.finances.budget / 2)
+  current = scouting.hireScout(current, 'scout-eu-1')
+  current = scouting.assignMission(current, 'scout-eu-1', target.position, 40, 'Mundo')
+  current = { ...current, day: 5 }
+  current = negotiations.startNegotiation(current, target.id, 'purchase', { ...negotiations.defaultTerms(current, target.id, 'purchase'), fee: Math.round(target.value * .7) })
+  const id = negotiations.deskOf(current).negotiations[0].id
+  current = negotiations.submitClubOffer(current, id)
+  assert.equal(negotiations.deskOf(current).negotiations[0].status, 'countered')
+  current = negotiations.acceptCounter(current, id)
+  current = negotiations.openPersonalTerms(current, id)
+  current = negotiations.completeNegotiation(current, id)
+  assert.equal(negotiations.deskOf(current).negotiations[0].status, 'completed')
+  assert.ok(current.roster.includes(target.id))
+  assert.equal(world.clubOf(current, target.id), current.clubId)
+})
+test('sale and outgoing loan require review and preserve squad safeguards', () => {
+  let current = model.createCareer('Victor', 'flamengo')
+  const reserve = current.roster.find(id => !current.lineup.includes(id))
+  current = negotiations.listPlayer(current, reserve, 'loan')
+  current = negotiations.startNegotiation(current, reserve, 'loan')
+  const id = negotiations.deskOf(current).negotiations[0].id
+  assert.equal(negotiations.deskOf(current).negotiations[0].kind, 'loan')
+  current = negotiations.submitClubOffer(current, id)
+  current = negotiations.openPersonalTerms(current, id)
+  current = negotiations.completeNegotiation(current, id)
+  assert.ok(!current.roster.includes(reserve))
+  assert.equal(negotiations.deskOf(current).negotiations[0].status, 'completed')
+  const starter = current.lineup[1]
+  let blocked = negotiations.startNegotiation(current, starter, 'sale')
+  const blockedId = negotiations.deskOf(blocked).negotiations.at(-1).id
+  blocked = negotiations.submitClubOffer(blocked, blockedId)
+  blocked = negotiations.openPersonalTerms(blocked, blockedId)
+  blocked = negotiations.completeNegotiation(blocked, blockedId)
+  assert.ok(blocked.roster.includes(starter))
 })
 
 test('persistent world ages players, moves CPU squads, creates offers and promotes youth', () => {
