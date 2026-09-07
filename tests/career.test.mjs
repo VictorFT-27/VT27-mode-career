@@ -152,23 +152,59 @@ test('training applies once per day and cannot run on match days', () => {
   assert.equal(season.train(career, 'technical'), career)
   const base = { ...career, day: 2 }
   const trained = season.train(base, 'technical')
-  assert.equal(season.energy(trained, 'fla1'), 90)
-  assert.equal(trained.preparation.skill, 1)
+  assert.equal(season.energy(trained, 'fla1'), 93)
+  assert.equal(trained.preparation.skill, 55)
   assert.equal(season.train(trained, 'tactical'), trained)
   assert.equal(season.advanceDay(base), base)
   assert.equal(season.advanceDay(trained).day, 3)
-  assert.equal(season.energy(season.advanceDay(trained), 'fla1'), 98)
+  assert.equal(season.energy(season.advanceDay(trained), 'fla1'), 100)
+})
+test('training preview supports intensity, sector and individual focus', () => {
+  const base = { ...model.createCareer('Victor', 'flamengo'), day: 2 }
+  const normal = season.trainingPreview(base, 'technical', 'normal', 'attack')
+  const high = season.trainingPreview(base, 'technical', 'high', 'attack')
+  assert.ok(normal.targeted.every(player => ['PD', 'PE', 'ATA'].includes(player.position)))
+  assert.ok(high.energyDelta < normal.energyDelta)
+  assert.ok(high.changes.skill > normal.changes.skill)
+  const playerId = normal.targeted[0].id
+  const focused = season.train(base, 'technical', 'normal', 'attack', playerId)
+  assert.equal(focused.preparation.sessions[0].playerId, playerId)
+  assert.match(focused.preparation.sessions[0].report, /1 atleta/)
+  assert.equal(season.energy(focused, playerId), 93)
+  assert.equal(season.energy(focused, base.roster.find(id => id !== playerId)), 100)
+})
+test('continuous preparation migrates old saves, decays and survives reload', () => {
+  const old = { ...model.createCareer('Victor', 'flamengo'), day: 2, preparation: { energy: {}, skill: 3, fitness: 2, cohesion: 6, sessions: [] } }
+  assert.equal(season.preparation(old).skill, 68)
+  assert.equal(season.preparation(old).cohesion, 74)
+  const trained = season.train(old, 'collective', 'normal')
+  assert.ok(trained.preparation.sharpness > 50)
+  assert.ok(trained.preparation.workload > 25)
+  const advanced = season.advanceDay(trained)
+  assert.ok(advanced.preparation.cohesion < trained.preparation.cohesion)
+  model.saveCareer(advanced)
+  const loaded = model.loadCareer()
+  assert.equal(loaded.preparation.sharpness, advanced.preparation.sharpness)
+  assert.equal(loaded.preparation.workload, advanced.preparation.workload)
+})
+test('high accumulated workload exposes a tired athlete to overload injury', () => {
+  const base = model.createCareer('Victor', 'flamengo')
+  const energyMap = Object.fromEntries(base.roster.map((id, index) => [id, index ? 70 : 35]))
+  const loaded = { ...base, day: 2, preparation: { ...season.preparation(base), energy: energyMap, workload: 75 } }
+  const trained = season.train(loaded, 'collective', 'high')
+  assert.equal(trained.availability[base.roster[0]].injuredMatches, 1)
+  assert.match(trained.preparation.sessions[0].report, /sobrecarga/)
 })
 test('fatigue applies only to match starters and only once at full time', () => {
   const base = { ...career, match: football.simulate(career) }
   const ongoing = season.progressMatch(base, 4)
   assert.equal(season.energy(ongoing, 'fla1'), 100)
   const done = season.progressMatch(ongoing, 9)
-  assert.equal(season.energy(done, 'fla1'), 76)
+  assert.equal(season.energy(done, 'fla1'), 75.5)
   assert.equal(season.energy(done, 'fla12'), 100)
   assert.equal(season.progressMatch(done, 9), done)
   const rested = season.advanceDay(done)
-  assert.equal(season.energy(rested, 'fla1'), 84)
+  assert.equal(season.energy(rested, 'fla1'), 83.5)
   assert.equal(rested.history.length, 1)
   assert.equal(rested.match, undefined)
 })
@@ -178,8 +214,8 @@ test('fitness reduces fatigue, low energy lowers strength and recovery is capped
   assert.ok(football.strength(model.defaultLineup, '4-3-3', tired) < football.strength(model.defaultLineup, '4-3-3', career))
   const recovered = season.train(tired, 'recovery')
   assert.equal(season.energy(recovered, 'fla1'), 70)
-  const fit = { ...career, preparation: { ...prep, fitness: 3 }, match: football.simulate(career) }
-  assert.equal(season.energy(season.progressMatch(fit, 9), 'fla1'), 82)
+  const fit = { ...career, preparation: { ...prep, fitness: 85 }, match: football.simulate(career) }
+  assert.equal(season.energy(season.progressMatch(fit, 9), 'fla1'), 78.5)
   assert.equal(season.energy(season.train({ ...career, day: 2 }, 'recovery'), 'fla1'), 100)
 })
 test('seven-day season completes three matches and preserves all results through reloads', () => {
@@ -209,7 +245,7 @@ test('legacy day-two save archives first match and keeps coach identity', () => 
   assert.equal(loaded.history.length, 1)
   assert.equal(loaded.match, undefined)
   assert.equal(loaded.name, career.name)
-  assert.equal(loaded.seasonVersion, 3)
+  assert.equal(loaded.seasonVersion, 4)
 })
 
 test('league schedule gives every club 38 games and balanced home/away fixtures', () => {

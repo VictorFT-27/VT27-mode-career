@@ -9,8 +9,11 @@ export const positions: Record<Formation, string[]> = {
   '4-4-2': ['GOL', 'LD', 'ZAG', 'ZAG', 'LE', 'MD', 'MC', 'MC', 'ME', 'ATA', 'ATA'],
   '3-5-2': ['GOL', 'ZAG', 'ZAG', 'ZAG', 'MD', 'VOL', 'MC', 'MC', 'ME', 'ATA', 'ATA'],
 }
-export type TrainingKind = 'physical' | 'technical' | 'tactical' | 'recovery'
-export type Preparation = { energy: Record<string, number>; skill: number; fitness: number; cohesion: number; sessions: { day: number; kind: TrainingKind }[] }
+export type TrainingKind = 'physical' | 'technical' | 'tactical' | 'collective' | 'recovery'
+export type TrainingIntensity = 'light' | 'normal' | 'high'
+export type TrainingSector = 'all' | 'defense' | 'midfield' | 'attack'
+export type TrainingSession = { day: number; kind: TrainingKind; intensity?: TrainingIntensity; sector?: TrainingSector; playerId?: string; report?: string }
+export type Preparation = { energy: Record<string, number>; skill: number; fitness: number; cohesion: number; sharpness?: number; morale?: number; workload?: number; sessions: TrainingSession[] }
 export const fixtureDays = [1, 4, 7]
 export type LeagueResult = { round: number; home: string; away: string; homeGoals: number; awayGoals: number }
 export const leagueClubIds = ['flamengo', 'palmeiras', 'santos', 'vasco', 'botafogo', 'fluminense', 'cruzeiro', 'atletico-mg', 'gremio', 'internacional', 'bahia', 'vitoria', 'athletico-pr', 'coritiba', 'red-bull-bragantino', 'mirassol', 'remo', 'chapecoense', 'corinthians', 'sao-paulo']

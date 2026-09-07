@@ -15,7 +15,10 @@ export function fit(id: string, position: string) {
   return .86
 }
 export function strength(lineup: string[], formation: Formation, career?: Career) {
-  return Math.round(lineup.reduce((sum, id, i) => sum + ((career ? overall(career, id) : player(id).rating) + (career ? preparation(career).skill : 0)) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + (career ? preparation(career).cohesion + tacticalBonus(tacticsOf(career), formation) : 0))
+  const prep = career ? preparation(career) : undefined
+  const technicalBonus = prep ? (prep.skill - 50) / 10 : 0
+  const collectiveBonus = prep ? ((prep.cohesion - 50) + ((prep.sharpness ?? 50) - 50) + ((prep.morale ?? 60) - 60)) / 18 : 0
+  return Math.round(lineup.reduce((sum, id, i) => sum + ((career ? overall(career, id) : player(id).rating) + technicalBonus) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + collectiveBonus + (career ? tacticalBonus(tacticsOf(career), formation) : 0))
 }
 export function autoLineup(career: Career, formation = career.formation) {
   const available = rosterOfIds(career).filter(id => !unavailable(career, id))
