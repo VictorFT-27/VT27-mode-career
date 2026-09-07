@@ -7,13 +7,17 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, world, types, progression, matchEngine, transfers, board, availability
+let model, football, season, league, cup, cupData, world, types, progression, matchEngine, transfers, board, availability, playerModel
 try {
   for (const name of ['types', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
   }
+  const playerSource = await readFile(new URL('../src/features/player/playerModel.ts', import.meta.url), 'utf8')
+  const playerOutput = ts.transpileModule(playerSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
+  await writeFile(join(directory, 'playerModel.mjs'), playerOutput.replace("from '../career/realData'", "from './realData.mjs'"))
+  playerModel = await import(pathToFileURL(join(directory, 'playerModel.mjs')))
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
   matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
   transfers = await import(pathToFileURL(join(directory, 'transfers.mjs')))
@@ -543,4 +547,63 @@ test('new signings start available and season renewal clears medical status', ()
   const complete = finishSeason({ ...bought, day: 1, seasonNumber: 1 })
   const renewed = progression.renewSeason(complete)
   assert.ok(Object.values(renewed.availability).every(state => state.injuredMatches === 0 && state.suspensionMatches === 0 && state.yellowCards === 0))
+})
+
+test('player career creates a custom prospect and preserves the coach save separately', () => {
+  const player = playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 27)
+  assert.equal(player.mode, 'player')
+  assert.equal(player.age, 17)
+  assert.equal(player.clubId, 'santos')
+  assert.equal(player.shirtNumber, 27)
+  assert.equal(playerModel.playerRole(player), 'bench')
+  assert.ok(playerModel.playerOverall(player) >= 60)
+  assert.ok(playerModel.savePlayerCareer(player))
+  assert.equal(playerModel.loadPlayerCareer().name, 'Victor')
+})
+
+test('individual training is limited to one session per round and develops attributes', () => {
+  const player = playerModel.createPlayerCareer('Victor', 'santos', 'PE', 11)
+  const trained = playerModel.trainPlayer(player, 'finishing')
+  assert.equal(trained.attributes.shooting, player.attributes.shooting + 1)
+  assert.ok(trained.energy < player.energy)
+  assert.ok(trained.trust > player.trust)
+  assert.equal(trained.trainingCompleted, true)
+  assert.deepEqual(playerModel.trainPlayer(trained, 'physical'), trained)
+})
+
+test('twelve player rounds award experience, unlock offers and carry history into a transfer', () => {
+  let player = playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 9)
+  let started = false
+  for (let round = 0; round < 12; round++) {
+    player = playerModel.trainPlayer(player, round % 2 ? 'physical' : 'finishing')
+    player = playerModel.playPlayerRound(player, round % 3 === 0 ? 'bold' : 'team')
+    started ||= player.matches.at(-1).role === 'starter'
+  }
+  assert.equal(player.round, 12)
+  assert.equal(player.seasonComplete, true)
+  assert.equal(player.matches.length, 12)
+  assert.ok(started)
+  assert.ok(player.stats.appearances >= 10)
+  assert.ok(player.offers.length >= 3)
+  assert.ok(player.skillPoints > 0)
+  const improved = playerModel.improvePlayer(player, 'shooting')
+  assert.equal(improved.attributes.shooting, player.attributes.shooting + 1)
+  const external = improved.offers.find(offer => offer.clubId !== improved.clubId)
+  const transferred = playerModel.acceptPlayerOffer(improved, external.clubId)
+  assert.equal(transferred.season, 2)
+  assert.equal(transferred.round, 0)
+  assert.equal(transferred.clubId, external.clubId)
+  assert.equal(transferred.seasons.length, 1)
+  assert.equal(transferred.allTime.appearances, player.stats.appearances)
+  assert.equal(transferred.stats.appearances, 0)
+})
+
+test('a player can remain under contract without accepting a new offer', () => {
+  let player = playerModel.createPlayerCareer('Victor', 'flamengo', 'MC', 10)
+  for (let round = 0; round < 12; round++) player = playerModel.playPlayerRound(player, 'safe')
+  const next = playerModel.stayUnderContract(player)
+  assert.equal(next.clubId, 'flamengo')
+  assert.equal(next.season, 2)
+  assert.equal(next.contract.seasons, 2)
+  assert.equal(next.seasonComplete, false)
 })

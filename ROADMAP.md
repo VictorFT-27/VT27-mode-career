@@ -6,7 +6,7 @@ chega à `main` após validação.
 ## Concluído
 
 - Base React, TypeScript e Vite publicada no Cloudflare.
-- Escolha entre treinador, jogador e dirigente; treinador ativo.
+- Escolha entre treinador, jogador e dirigente; treinador e jogador ativos.
 - Criação, retomada e migração de carreira local.
 - Escalação, reservas, formações e adequação às posições.
 - Partidas com lances, placar, notas, mentalidades e substituições.
@@ -19,21 +19,21 @@ chega à `main` após validação.
 - Central histórica com artilharia, assistências, recordes e conquistas.
 - Mundo persistente com transferências entre clubes, propostas ao treinador,
   envelhecimento, aposentadorias e categorias de base.
+- Modo jogador com criação do atleta, treino individual, titularidade, decisões em
+  partidas, evolução, contratos, transferências e histórico próprio.
 
-## Próximas três etapas principais
+## Próximas duas etapas principais
 
-1. **Modo jogador:** criação do atleta, treinos individuais, titularidade, decisões em
-   partidas, contratos, transferências e evolução pessoal.
-2. **Modo dirigente:** treinador, metas institucionais, estrutura, base, receitas,
+1. **Modo dirigente:** treinador, metas institucionais, estrutura, base, receitas,
    orçamento e planejamento plurianual.
-3. **Versão final:** identidade visual própria mais moderna, esportiva e dinâmica,
+2. **Versão final:** identidade visual própria mais moderna, esportiva e dinâmica,
    tutorial integrado, acessibilidade, equilíbrio, proteção do acesso pessoal,
    sincronização de save e bateria final de testes.
 
 ## Próximo trabalho recomendado
 
-A etapa 1 agora começa pelo modo jogador: criação do atleta, treinos individuais,
-disputa por titularidade, contratos, transferências e evolução pessoal.
+A etapa 1 agora começa pelo modo dirigente: contratação e avaliação do treinador,
+estrutura do clube, categorias de base, receitas e planejamento de longo prazo.
 
 ## Dados do futebol
 

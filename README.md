@@ -2,6 +2,19 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
+## Modo jogador (edição 15)
+
+O segundo modo de carreira já pode ser jogado sem apagar o progresso do treinador.
+Você cria uma promessa de 17 anos, escolhe posição, camisa e clube formador e disputa
+temporadas diretas de 12 rodadas.
+
+- Quatro tipos de treino individual desenvolvem atributos, ritmo e confiança.
+- A escalação reage ao desempenho: fora da lista, banco de reservas ou titular.
+- Cada rodada oferece uma decisão de postura com efeitos em nota, gols e assistências.
+- Experiência gera pontos livres para personalizar seis atributos do atleta.
+- Estatísticas e temporadas ficam guardadas na linha do tempo da carreira.
+- Ao fim da temporada, é possível renovar, cumprir o vínculo ou aceitar transferência.
+
 ## Temporada nacional, história e mundo persistente (edição 14)
 
 O pacote nacional traz os 20 participantes da Série A 2026, cada um com 18 atletas
