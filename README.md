@@ -1,6 +1,10 @@
 # VT27 Mode Career
 
-O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
+Versão 1.0 do simulador de carreira com três modos jogáveis: treinador, jogador e
+dirigente. O projeto inclui competições nacionais, mercado completo, olheiros,
+treinamento contínuo, mundo persistente, tutorial, backup e proteção local por PIN.
+
+O histórico completo das entregas está em [ROADMAP.md](ROADMAP.md).
 
 ## Modo dirigente (edição 16)
 
@@ -277,3 +281,4 @@ arquivo, bloqueio de transição antecipada e limites de evolução.
 - Energia e notas consideram os minutos disputados por titulares e reservas.
 - Lances revelados permanecem imutáveis ao trocar a postura.
 - Partidas antigas continuam válidas com postura equilibrada e sem substituições.
+

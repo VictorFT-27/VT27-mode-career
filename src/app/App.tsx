@@ -24,9 +24,10 @@ import { DirectorSetup } from '../features/director/DirectorSetup'
 import { createDirectorCareer, loadDirectorCareer, saveDirectorCareer, type DirectorCareer as DirectorCareerState } from '../features/director/directorModel'
 import { useEffect, useRef, useState } from 'react'
 import { clubs, createCareer, loadCareer, modes, rosterOf, saveCareer, type Career, type Club } from '../features/career/model'
+import { AccessGate, SecurityPanel, Tutorial } from '../features/career/FinalTools'
 
 type View = 'modes' | 'setup' | 'office' | 'player-setup' | 'player-office' | 'director-setup' | 'director-office'
-type Tab = 'overview' | 'squad' | 'tactics' | 'match' | 'schedule' | 'league' | 'cup' | 'statistics' | 'world' | 'market' | 'medical' | 'board' | 'review'
+type Tab = 'overview' | 'squad' | 'tactics' | 'match' | 'schedule' | 'league' | 'cup' | 'statistics' | 'world' | 'market' | 'medical' | 'board' | 'review' | 'settings'
 function Crest({ club }: { club: Club }) { return <span className="crest" style={{ color: club.color, borderColor: club.color }}>{club.initials}</span> }
 function Pitch({ formation = '4-3-3' }: { formation?: string }) {
   const rows = formation.split('-').map(Number).reverse()
@@ -43,6 +44,8 @@ export default function App() {
   const [playerPosition, setPlayerPosition] = useState<PlayerPosition>('ATA')
   const [shirtNumber, setShirtNumber] = useState(9)
   const [notice, setNotice] = useState('')
+  const [tutorial, setTutorial] = useState(() => localStorage.getItem('vt27.tutorial.done') !== '1')
+  const [locked, setLocked] = useState(() => !!localStorage.getItem('vt27.access.pin') && sessionStorage.getItem('vt27.unlocked') !== '1')
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [view, tab])
   const club = clubs.find(c => c.id === (view === 'office' ? career?.clubId : clubId)) ?? clubs[0]
@@ -59,8 +62,10 @@ export default function App() {
     setDirectorCareer(next)
     setNotice(saveDirectorCareer(next) ? 'Carreira de dirigente salva neste navegador.' : 'Não foi possível salvar neste navegador.')
   }
+  if (locked) return <AccessGate onUnlock={() => setLocked(false)} />
   return <div className="app-shell">
-    <header className="topbar"><button className="brand" onClick={() => setView('modes')} aria-label="VT27 — início">VT<span>27</span><small>MODE CAREER</small></button><div className="top-meta"><span className="live-dot" /> {view === 'player-office' ? 'CARREIRA DE JOGADOR' : view === 'director-office' ? 'CARREIRA DE DIRIGENTE' : career?.leagueActive ? 'TEMPORADA NACIONAL' : 'PRÉ-TEMPORADA'} <span className="edition">EDIÇÃO 20</span></div></header>
+    <header className="topbar"><button className="brand" onClick={() => setView('modes')} aria-label="VT27 — início">VT<span>27</span><small>MODE CAREER</small></button><div className="top-meta"><span className="live-dot" /> {view === 'player-office' ? 'CARREIRA DE JOGADOR' : view === 'director-office' ? 'CARREIRA DE DIRIGENTE' : career?.leagueActive ? 'TEMPORADA NACIONAL' : 'PRÉ-TEMPORADA'} {career && <button className="help-button" onClick={() => { setView('office'); setTab('settings') }}>SAVE</button>}<button className="help-button" onClick={() => setTutorial(true)}>COMO JOGAR</button><span className="edition">VERSÃO 1.0</span></div></header>
+    {tutorial && <Tutorial onClose={() => setTutorial(false)} />}
     {view === 'modes' && <main className="selection">
       <div className="intro"><p className="eyebrow">SEU JOGO. SUA HISTÓRIA.</p><h1 tabIndex={-1} ref={heading}>O futebol tem muitos caminhos.<br /><em>Qual vai ser o seu?</em></h1><p>Três maneiras de viver o mesmo universo. Escolha de onde começa a sua história.</p></div>
       {career && <button className="resume" onClick={() => { setView('office'); setTab(isDismissed(career) ? 'board' : 'overview') }}><span>{isDismissed(career) ? 'CONSULTAR CARREIRA ENCERRADA' : 'CONTINUAR CARREIRA'} <strong>{career.name} · {clubs.find(c => c.id === career.clubId)?.name}</strong></span><span aria-hidden="true">↗</span></button>}
@@ -91,6 +96,7 @@ export default function App() {
       {tab === 'medical' && <MedicalPanel career={career} onLineup={() => setTab('tactics')} />}
       {tab === 'board' && <BoardPanel career={career} onExit={() => setView('modes')} />}
       {tab === 'review' && <SeasonReview career={career} onChange={update} onCalendar={() => setTab('schedule')} />}
+      {tab === 'settings' && <SecurityPanel career={career} />}
       <p className="save-notice" role="status">{notice || 'Carreira local · salva neste navegador'}</p><footer className="prototype-note">VERSÃO PESSOAL · Clubes e atletas reais. Níveis, valores e salários são estimativas internas do simulador.</footer>
     </main></div>}
   </div>

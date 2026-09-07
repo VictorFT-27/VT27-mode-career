@@ -36,14 +36,14 @@ final, serão concluídas quatro entregas:
 
 ## Etapa final
 
-1. **Versão final:** identidade visual própria mais moderna, esportiva e dinâmica,
+1. **Versão final — concluída:** identidade visual própria mais moderna, esportiva e dinâmica,
    tutorial integrado, acessibilidade, equilíbrio, proteção do acesso pessoal,
    sincronização de save e bateria final de testes.
 
-## Próximo trabalho recomendado
+## Situação do projeto
 
-A próxima entrega é a edição final: identidade visual, tutorial, acessibilidade,
-proteção do acesso pessoal, sincronização do save e equilíbrio geral.
+A versão 1.0 está concluída. Melhorias futuras podem ampliar ligas, profundidade das
+simulações e sincronização online, sem impedir que os três modos sejam jogados hoje.
 
 ## Dados do futebol
 
