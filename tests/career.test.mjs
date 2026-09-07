@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, world, types, progression, matchEngine, transfers, board, availability, playerModel
+let model, football, season, league, cup, cupData, world, types, progression, matchEngine, transfers, board, availability, playerModel, directorModel
 try {
   for (const name of ['types', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
@@ -18,6 +18,10 @@ try {
   const playerOutput = ts.transpileModule(playerSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
   await writeFile(join(directory, 'playerModel.mjs'), playerOutput.replace("from '../career/realData'", "from './realData.mjs'"))
   playerModel = await import(pathToFileURL(join(directory, 'playerModel.mjs')))
+  const directorSource = await readFile(new URL('../src/features/director/directorModel.ts', import.meta.url), 'utf8')
+  const directorOutput = ts.transpileModule(directorSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
+  await writeFile(join(directory, 'directorModel.mjs'), directorOutput.replace(/from '\.\.\/career\/(\w+)'/g, "from './$1.mjs'"))
+  directorModel = await import(pathToFileURL(join(directory, 'directorModel.mjs')))
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
   matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
   transfers = await import(pathToFileURL(join(directory, 'transfers.mjs')))
@@ -606,4 +610,57 @@ test('a player can remain under contract without accepting a new offer', () => {
   assert.equal(next.season, 2)
   assert.equal(next.contract.seasons, 2)
   assert.equal(next.seasonComplete, false)
+})
+
+test('director career starts with official squad, club finances and independent save', () => {
+  const director = directorModel.createDirectorCareer('Victor', 'palmeiras')
+  assert.equal(director.mode, 'director')
+  assert.equal(director.clubId, 'palmeiras')
+  assert.equal(director.squad.length, 18)
+  assert.equal(directorModel.directorSquad(director).every(player => player.clubId === 'palmeiras'), true)
+  assert.ok(director.budget > 0)
+  assert.equal(director.prospects.length, 3)
+  assert.ok(directorModel.saveDirectorCareer(director))
+  assert.equal(directorModel.loadDirectorCareer().name, 'Victor')
+})
+
+test('director can hire a coach, improve structure and promote a prospect within budget', () => {
+  const director = directorModel.createDirectorCareer('Victor', 'flamengo')
+  const hired = directorModel.hireCoach(director, 'c2')
+  assert.equal(hired.coach.id, 'c2')
+  assert.ok(hired.budget < director.budget)
+  const upgraded = directorModel.upgradeStructure(hired, 'academy')
+  assert.equal(upgraded.structures.academy, 2)
+  const promoted = directorModel.promoteDirectorProspect(upgraded, upgraded.prospects[0])
+  assert.equal(promoted.squad.length, 19)
+  assert.equal(promoted.promoted, 1)
+  assert.equal(promoted.prospects.length, 2)
+})
+
+test('director market enforces squad rules and records transfers in the budget', () => {
+  const director = directorModel.createDirectorCareer('Victor', 'flamengo')
+  const target = directorModel.directorPlayer(director.market[0])
+  const bought = directorModel.buyDirectorPlayer(director, target.id)
+  assert.equal(bought.squad.includes(target.id), true)
+  assert.equal(bought.budget, director.budget - target.value)
+  const sold = directorModel.sellDirectorPlayer(bought, target.id)
+  assert.equal(sold.squad.includes(target.id), false)
+  assert.equal(sold.budget, bought.budget + Math.round(target.value * .82))
+})
+
+test('ten executive cycles close a season and preserve the multi-year project', () => {
+  let director = directorModel.createDirectorCareer('Victor', 'bahia')
+  for (let cycle = 0; cycle < 10; cycle++) director = directorModel.advanceDirectorCycle(director)
+  assert.equal(director.cycle, 10)
+  assert.equal(director.seasonComplete, true)
+  assert.equal(director.cycles.length, 10)
+  assert.ok(director.revenue > 0)
+  assert.ok(director.expenses > 0)
+  const next = directorModel.renewDirectorSeason(director)
+  assert.equal(next.season, 2)
+  assert.equal(next.cycle, 0)
+  assert.equal(next.seasons.length, 1)
+  assert.equal(next.structures.training, director.structures.training)
+  assert.equal(next.squad.length, director.squad.length)
+  assert.equal(next.prospects.length, 3)
 })

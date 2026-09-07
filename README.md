@@ -2,6 +2,20 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
+## Modo dirigente (edição 16)
+
+O terceiro modo de carreira transforma o clube em um projeto de longo prazo. Cada
+carreira usa um save próprio e começa com o elenco, orçamento, folha e metas da equipe
+escolhida.
+
+- Contratação e avaliação de treinadores com perfis, qualidade e salários diferentes.
+- Dez ciclos executivos por temporada, com resultados, receitas e despesas automáticas.
+- Metas esportivas, financeiras e de formação avaliadas pelo conselho.
+- Mercado com atletas reais, limite de elenco, orçamento e controle da folha.
+- Quatro estruturas evolutivas: treinamento, base, departamento médico e observação.
+- Promoção de jovens e efeito da academia na qualidade dos atletas formados.
+- Relatório anual e continuidade plurianual de elenco, estrutura, treinador e saldo.
+
 ## Modo jogador (edição 15)
 
 O segundo modo de carreira já pode ser jogado sem apagar o progresso do treinador.
