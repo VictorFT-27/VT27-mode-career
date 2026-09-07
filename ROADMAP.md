@@ -31,7 +31,7 @@ final, serão concluídas quatro entregas:
 
 1. ~~Correção da troca de clube e reconstrução da escalação e das táticas.~~ Concluída na Edição 17.
 2. ~~Centro de treinamento com progressão útil durante toda a temporada.~~ Concluído na Edição 18.
-3. Pesquisa completa de atletas, olheiros, missões e relatórios.
+3. ~~Pesquisa completa de atletas, olheiros, missões e relatórios.~~ Concluída na Edição 19.
 4. Negociações com propostas, contrapropostas, empréstimos e contratos detalhados.
 
 ## Etapa final
@@ -42,8 +42,8 @@ final, serão concluídas quatro entregas:
 
 ## Próximo trabalho recomendado
 
-A Edição 19 abrirá a pesquisa de atletas e criará olheiros, missões e relatórios
-para descobrir talentos antes de iniciar uma negociação.
+A Edição 20 transformará sondagens em negociações completas, com propostas,
+contrapropostas, empréstimos e contratos detalhados.
 
 ## Dados do futebol
 

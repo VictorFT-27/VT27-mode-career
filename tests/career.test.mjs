@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, world, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
+let model, football, season, league, cup, cupData, world, scouting, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
 try {
-  for (const name of ['types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'scouting', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -31,6 +31,7 @@ try {
   cup = await import(pathToFileURL(join(directory, 'cup.mjs')))
   cupData = await import(pathToFileURL(join(directory, 'cupData.mjs')))
   world = await import(pathToFileURL(join(directory, 'world.mjs')))
+  scouting = await import(pathToFileURL(join(directory, 'scouting.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   tactics = await import(pathToFileURL(join(directory, 'tactics.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
@@ -476,6 +477,29 @@ test('market purchase changes budget, wage bill, roster and persists through rel
   assert.equal(loaded.finances.budget, 34000)
   assert.equal(loaded.transfers.at(-1).kind, 'buy')
   assert.equal(world.clubOf(loaded, target.id), loaded.clubId)
+})
+test('scouting network hires at most three scouts and persists shortlists', () => {
+  let current = model.createCareer('Victor', 'flamengo')
+  for (const scout of scouting.scoutMarket) current = scouting.hireScout(current, scout.id)
+  assert.equal(scouting.scoutingOf(current).hired.length, 3)
+  const targets = model.allPlayers.filter(player => world.clubOf(current, player.id) !== current.clubId).slice(0, 4)
+  current = scouting.toggleFavorite(current, targets[0].id)
+  targets.forEach(player => { current = scouting.toggleCompared(current, player.id) })
+  assert.deepEqual(scouting.scoutingOf(current).favorites, [targets[0].id])
+  assert.deepEqual(scouting.scoutingOf(current).compared, targets.slice(1).map(player => player.id))
+  model.saveCareer(current)
+  assert.deepEqual(scouting.scoutingOf(model.loadCareer()).favorites, [targets[0].id])
+})
+test('compatible missions reveal player reports over calendar cycles', () => {
+  let current = model.createCareer('Victor', 'flamengo')
+  current = scouting.hireScout(current, 'scout-br-1')
+  const target = model.allPlayers.find(player => world.clubOf(current, player.id) !== current.clubId && player.age <= 30)
+  current = scouting.assignMission(current, 'scout-br-1', target.position, 30, 'Brasil')
+  assert.equal(scouting.knowledgeOf(current, target.id), 0)
+  assert.equal(scouting.knowledgeOf({ ...current, day: 3 }, target.id), 1)
+  assert.equal(scouting.knowledgeOf({ ...current, day: 5 }, target.id), 2)
+  assert.equal(scouting.knowledgeOf({ ...current, day: 7 }, target.id), 3)
+  assert.ok(scouting.potentialOf(current, target.id) >= target.rating)
 })
 
 test('persistent world ages players, moves CPU squads, creates offers and promotes youth', () => {
