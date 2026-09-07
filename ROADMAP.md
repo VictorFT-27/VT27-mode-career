@@ -24,7 +24,17 @@ chega à `main` após validação.
 - Modo dirigente com treinador, metas institucionais, estruturas, base, receitas,
   orçamento, mercado e planejamento plurianual.
 
-## Próxima etapa principal
+## Melhorias obrigatórias antes da etapa final
+
+O plano detalhado está em [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md). Antes da versão
+final, serão concluídas quatro entregas:
+
+1. Correção da troca de clube e reconstrução da escalação e das táticas.
+2. Centro de treinamento com progressão útil durante toda a temporada.
+3. Pesquisa completa de atletas, olheiros, missões e relatórios.
+4. Negociações com propostas, contrapropostas, empréstimos e contratos detalhados.
+
+## Etapa final
 
 1. **Versão final:** identidade visual própria mais moderna, esportiva e dinâmica,
    tutorial integrado, acessibilidade, equilíbrio, proteção do acesso pessoal,
@@ -32,9 +42,8 @@ chega à `main` após validação.
 
 ## Próximo trabalho recomendado
 
-A última etapa agora reúne modernização visual, tutorial integrado, acessibilidade,
-equilíbrio dos três modos, proteção do acesso pessoal, sincronização de save e a
-bateria final de testes.
+A Edição 17 começa pela correção da troca de clube e pela nova central de escalação
+e táticas. Essa base será validada antes da reconstrução do treinamento e do mercado.
 
 ## Dados do futebol
 
