@@ -2,6 +2,7 @@ import { allPlayers, clubs, defaultFinances, defaultWorld, lineupForRoster, type
 import { standings, boardTarget } from './league'
 import { youthPlayers } from './youthData'
 import type { Contract, SeasonArchive, WorldState } from './types'
+import { defaultTactics } from './tactics'
 
 export function worldOf(career: Career): WorldState { return career.world ?? defaultWorld(career.seasonNumber ?? 1, career.clubId) }
 export function ageOf(career: Career, playerId: string) { return worldOf(career).playerAges[playerId] ?? allPlayers.find(player => player.id === playerId)?.age ?? 18 }
@@ -66,12 +67,19 @@ export function promoteProspect(career: Career, playerId: string): Career {
 export function acceptManagerOffer(career: Career, clubId: string): Career {
   const previous = worldOf(career)
   const world = { ...previous, playerClubs: { ...previous.playerClubs } }
-  if (career.leagueActive || (career.day ?? 1) > 8 || !world.managerOffers.includes(clubId) || !clubs.some(club => club.id === clubId)) return career
+  if (managerOfferBlockReason(career, clubId)) return career
   let roster = clubSquad(career, clubId).map(player => player.id)
   const assigned = new Set([...Object.keys(world.playerClubs), ...world.retirements.map(item => item.playerId)])
   const availableYouth = youthPlayers.filter(player => !assigned.has(player.id)).sort((a, b) => Number(b.position === 'GOL') - Number(a.position === 'GOL')).map(player => player.id)
   if (!roster.some(id => allPlayers.find(player => player.id === id)?.position === 'GOL')) { const keeper = availableYouth.find(id => allPlayers.find(player => player.id === id)?.position === 'GOL'); if (keeper) { roster.push(keeper); world.playerClubs[keeper] = clubId; availableYouth.splice(availableYouth.indexOf(keeper), 1) } }
   while (roster.length < 16 && availableYouth.length) { const id = availableYouth.shift()!; roster.push(id); world.playerClubs[id] = clubId }
   roster = roster.slice(0, 23)
-  return { ...career, clubId, roster, lineup: lineupForRoster(roster, clubId), contracts: Object.fromEntries(roster.map(id => [id, contractFor(id)])), finances: { ...defaultFinances[clubId] }, board: undefined, availability: Object.fromEntries(roster.map(id => [id, { injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 }])), world: { ...world, managerOffers: [], prospects: nextProspects(world, career.seasonNumber ?? 1, clubId) }, preparation: { energy: Object.fromEntries(roster.map(id => [id, 100])), skill: 0, fitness: 0, cohesion: 0, sessions: [] } }
+  return { ...career, clubId, formation: '4-3-3', tactics: { ...defaultTactics }, roster, lineup: lineupForRoster(roster, clubId), contracts: Object.fromEntries(roster.map(id => [id, contractFor(id)])), finances: { ...defaultFinances[clubId] }, board: undefined, availability: Object.fromEntries(roster.map(id => [id, { injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 }])), world: { ...world, managerOffers: [], prospects: nextProspects(world, career.seasonNumber ?? 1, clubId) }, preparation: { energy: Object.fromEntries(roster.map(id => [id, 100])), skill: 0, fitness: 0, cohesion: 0, sessions: [] }, lastManagerMove: { season: career.seasonNumber ?? 1, fromClubId: career.clubId, toClubId: clubId } }
 }
+export function managerOfferBlockReason(career: Career, clubId: string) {
+  if (!clubs.some(club => club.id === clubId)) return 'O clube desta proposta não está disponível.'
+  if (career.leagueActive || (career.day ?? 1) > 8) return 'A mudança de clube só pode ser concluída durante a pré-temporada.'
+  if (!worldOf(career).managerOffers.includes(clubId)) return 'Esta proposta não está mais disponível.'
+  return ''
+}
+

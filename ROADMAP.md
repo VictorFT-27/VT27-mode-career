@@ -29,7 +29,7 @@ chega à `main` após validação.
 O plano detalhado está em [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md). Antes da versão
 final, serão concluídas quatro entregas:
 
-1. Correção da troca de clube e reconstrução da escalação e das táticas.
+1. ~~Correção da troca de clube e reconstrução da escalação e das táticas.~~ Concluída na Edição 17.
 2. Centro de treinamento com progressão útil durante toda a temporada.
 3. Pesquisa completa de atletas, olheiros, missões e relatórios.
 4. Negociações com propostas, contrapropostas, empréstimos e contratos detalhados.
@@ -42,10 +42,11 @@ final, serão concluídas quatro entregas:
 
 ## Próximo trabalho recomendado
 
-A Edição 17 começa pela correção da troca de clube e pela nova central de escalação
-e táticas. Essa base será validada antes da reconstrução do treinamento e do mercado.
+A Edição 18 reconstruirá o treinamento para sustentar evolução, desgaste e recuperação
+durante uma temporada completa.
 
 ## Dados do futebol
 
 Os nomes de clubes e atletas representam o recorte usado na versão pessoal. Níveis,
 valores, salários, probabilidades e metas são parâmetros internos do simulador.
+

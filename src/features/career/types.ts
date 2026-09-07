@@ -1,7 +1,8 @@
 export type Mentality = 'defensive' | 'balanced' | 'attacking'
+export type TacticalPlan = { pressure: 'low' | 'balanced' | 'high'; defensiveLine: 'low' | 'balanced' | 'high'; width: 'narrow' | 'balanced' | 'wide'; tempo: 'patient' | 'balanced' | 'fast'; focus: 'center' | 'balanced' | 'flanks' }
 export type MatchEvent = { minute: number; side: 'home' | 'away'; goal: boolean; text: string; playerId?: string; assistPlayerId?: string; sideRoll?: number; goalRoll?: number; playerRoll?: number; assistRoll?: number }
 export type Substitution = { minute: number; outId: string; inId: string }
-export type Match = { opponent: string; lineup: string[]; startingLineup?: string[]; formation: string; events: MatchEvent[]; cursor: number; ratings: { playerId: string; value: number }[]; strength: number; otherResult?: LeagueResult; otherResults?: LeagueResult[]; mentality?: Mentality; substitutions?: Substitution[]; ratingsFinalized?: boolean; disciplineRolls?: number[]; yellowCards?: string[]; injury?: { playerId: string; matches: number }; disciplineFinalized?: boolean }
+export type Match = { opponent: string; lineup: string[]; startingLineup?: string[]; formation: string; tactics?: TacticalPlan; events: MatchEvent[]; cursor: number; ratings: { playerId: string; value: number }[]; strength: number; otherResult?: LeagueResult; otherResults?: LeagueResult[]; mentality?: Mentality; substitutions?: Substitution[]; ratingsFinalized?: boolean; disciplineRolls?: number[]; yellowCards?: string[]; injury?: { playerId: string; matches: number }; disciplineFinalized?: boolean }
 export type Formation = '4-3-3' | '4-4-2' | '3-5-2'
 export const positions: Record<Formation, string[]> = {
   '4-3-3': ['GOL', 'LD', 'ZAG', 'ZAG', 'LE', 'VOL', 'MC', 'MC', 'PD', 'ATA', 'PE'],
@@ -46,3 +47,4 @@ export type BoardStatus = 'secure' | 'stable' | 'pressure' | 'dismissed'
 export type BoardReview = { round: number; delta: number; confidence: number; rank: number; result: 'win' | 'draw' | 'loss'; reason: string }
 export type BoardState = { confidence: number; lastRound: number; status: BoardStatus; history: BoardReview[] }
 export type PlayerAvailability = { injuredMatches: number; suspensionMatches: number; yellowCards: number }
+

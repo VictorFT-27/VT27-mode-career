@@ -4,6 +4,8 @@ import { cupFixture } from './cup'
 import { energy, preparation } from './season'
 import { allClubs, allPlayers, clubs, defaultRosterFor, lineupForRoster, validLineup, type Career } from './model'
 import { positions, type Formation, type Match, leagueRounds } from './types'
+import { tacticalBonus, tacticsOf } from './tactics'
+import { unavailable } from './availability'
 export function player(id: string) { return allPlayers.find(p => p.id === id)! }
 export function lineupOf(career: Career) { const roster = career.roster ?? defaultRosterFor(career.clubId); return validLineup(career.lineup) && career.lineup.every(id => roster.includes(id)) ? career.lineup : lineupForRoster(roster, career.clubId) }
 export function fit(id: string, position: string) {
@@ -13,8 +15,19 @@ export function fit(id: string, position: string) {
   return .86
 }
 export function strength(lineup: string[], formation: Formation, career?: Career) {
-  return Math.round(lineup.reduce((sum, id, i) => sum + ((career ? overall(career, id) : player(id).rating) + (career ? preparation(career).skill : 0)) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + (career ? preparation(career).cohesion : 0))
+  return Math.round(lineup.reduce((sum, id, i) => sum + ((career ? overall(career, id) : player(id).rating) + (career ? preparation(career).skill : 0)) * fit(id, positions[formation][i]) * (career ? .7 + .3 * energy(career, id) / 100 : 1), 0) / 11 + (career ? preparation(career).cohesion + tacticalBonus(tacticsOf(career), formation) : 0))
 }
+export function autoLineup(career: Career, formation = career.formation) {
+  const available = rosterOfIds(career).filter(id => !unavailable(career, id))
+  const chosen: string[] = []
+  for (const slot of positions[formation]) {
+    const options = available.filter(id => !chosen.includes(id) && (slot === 'GOL') === (player(id).position === 'GOL')).sort((a, b) => overall(career, b) * fit(b, slot) * energy(career, b) - overall(career, a) * fit(a, slot) * energy(career, a))
+    if (!options[0]) return lineupOf(career)
+    chosen.push(options[0])
+  }
+  return validLineup(chosen) ? chosen : lineupOf(career)
+}
+function rosterOfIds(career: Career) { return career.roster ?? defaultRosterFor(career.clubId) }
 export function swap(lineup: string[], slot: number, id: string): string[] {
   if (!Number.isInteger(slot) || slot < 0 || slot > 10 || !allPlayers.some(p => p.id === id)) return lineup
   const next = [...lineup]
@@ -51,5 +64,6 @@ export function simulate(career: Career, random = Math.random): Match {
   const away = events.filter(e => e.side === 'away' && e.goal).length
   const ratings = lineup.map(id => ({ playerId: id, value: Math.round(Math.max(1, Math.min(10, 6 + random() * 1.2 + (home - away) * .2 + events.filter(e => e.playerId === id && e.goal).length * .7)) * 10) / 10 }))
   const otherResults = !cup && fixture && 'round' in fixture ? leagueRounds[fixture.round - 1].filter(([home, away]) => home !== career.clubId && away !== career.clubId).map(([otherHome, otherAway]) => ({ round: fixture.round, home: otherHome, away: otherAway, homeGoals: Math.floor(random() * 4), awayGoals: Math.floor(random() * 4) })) : undefined
-  return { ...(otherResults ? { otherResults } : {}), opponent: opponent.id, startingLineup: [...lineup], lineup: [...lineup], formation: career.formation, strength: power, events, ratings, cursor: 0, mentality: 'balanced', substitutions: [], disciplineRolls: Array.from({ length: 6 }, () => random()) }
+  return { ...(otherResults ? { otherResults } : {}), opponent: opponent.id, startingLineup: [...lineup], lineup: [...lineup], formation: career.formation, tactics: { ...tacticsOf(career) }, strength: power, events, ratings, cursor: 0, mentality: 'balanced', substitutions: [], disciplineRolls: Array.from({ length: 6 }, () => random()) }
 }
+

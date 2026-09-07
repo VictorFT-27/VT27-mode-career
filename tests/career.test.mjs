@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, world, types, progression, matchEngine, transfers, board, availability, playerModel, directorModel
+let model, football, season, league, cup, cupData, world, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
 try {
-  for (const name of ['types', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -32,6 +32,7 @@ try {
   cupData = await import(pathToFileURL(join(directory, 'cupData.mjs')))
   world = await import(pathToFileURL(join(directory, 'world.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
+  tactics = await import(pathToFileURL(join(directory, 'tactics.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
   season = await import(pathToFileURL(join(directory, 'season.mjs')))
   football = await import(pathToFileURL(join(directory, 'football.mjs')))
@@ -73,6 +74,22 @@ test('keeper rules reject invalid swaps but accept reserve goalkeeper', () => {
 test('position mismatch reduces strength', () => {
   const initial = football.lineupOf(career)
   assert.ok(football.strength(football.swap(initial, 1, 'fla10'), '4-3-3') < football.strength(initial, '4-3-3'))
+})
+test('automatic lineup excludes unavailable athletes and keeps a valid eleven', () => {
+  const created = model.createCareer('Victor', 'flamengo')
+  const unavailableId = created.lineup[4]
+  const adjusted = football.autoLineup({ ...created, availability: { [unavailableId]: { injuredMatches: 2, suspensionMatches: 0, yellowCards: 0 } } })
+  assert.ok(model.validLineup(adjusted))
+  assert.ok(!adjusted.includes(unavailableId))
+})
+test('tactical identity changes strength, risk and fatigue predictably', () => {
+  const balanced = { ...tactics.defaultTactics }
+  const intense = { pressure: 'high', defensiveLine: 'high', width: 'wide', tempo: 'fast', focus: 'flanks' }
+  assert.ok(tactics.tacticalBonus(intense, '4-3-3') > tactics.tacticalBonus(balanced, '4-3-3'))
+  assert.ok(tactics.tacticalFatigue(intense) > tactics.tacticalFatigue(balanced))
+  assert.ok(tactics.tacticalRisk(intense) > tactics.tacticalRisk(balanced))
+  const match = football.simulate({ ...model.createCareer('Victor', 'flamengo'), tactics: intense }, () => .5)
+  assert.deepEqual(match.tactics, intense)
 })
 test('simulation creates 90 minutes, valid scorers, fixed ratings and progressive score', () => {
   const match = football.simulate(career, () => .1)
@@ -446,10 +463,14 @@ test('persistent world ages players, moves CPU squads, creates offers and promot
   assert.equal(switched.clubId, destination)
   assert.ok(switched.roster.length >= 16)
   assert.ok(model.validLineup(switched.lineup))
+  assert.equal(switched.lastManagerMove.fromClubId, renewed.clubId)
+  assert.equal(switched.lastManagerMove.toClubId, destination)
+  assert.deepEqual(switched.tactics, tactics.defaultTactics)
   assert.deepEqual(switched.world.managerOffers, [])
   model.saveCareer(switched)
   const loaded = model.loadCareer()
   assert.equal(loaded.clubId, destination)
+  assert.equal(loaded.lastManagerMove.toClubId, destination)
   assert.equal(loaded.world.transfers.length, switched.world.transfers.length)
 })
 
@@ -664,3 +685,4 @@ test('ten executive cycles close a season and preserve the multi-year project', 
   assert.equal(next.squad.length, director.squad.length)
   assert.equal(next.prospects.length, 3)
 })
+

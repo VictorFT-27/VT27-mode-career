@@ -4,6 +4,7 @@ import { finalizeRatings, minutesPlayed, resolveEvent } from './matchEngine'
 import { rosterOf, type Career } from './model'
 import { fixtureDays, leagueDays, leagueEndDay, type Preparation, type TrainingKind } from './types'
 import { commitCupDay, cupFixture } from './cup'
+import { tacticalFatigue, tacticsOf } from './tactics'
 export const sessions: { kind: TrainingKind; name: string; subtitle: string; effect: string }[] = [
   { kind: 'physical', name: 'Físico', subtitle: 'Mais resistência', effect: '−8 de energia. +1 de preparo físico (até 3), reduzindo o desgaste de cada jogo em 2 pontos por nível.' },
   { kind: 'technical', name: 'Técnico', subtitle: 'Qualidade com a bola', effect: '−10 de energia. +1 de nível técnico do elenco (até +3), aplicado à força nas partidas.' },
@@ -40,8 +41,9 @@ export function progressMatch(career: Career, cursor: number): Career {
   let resolvedMatch = { ...match, events }
   if (next === 9) resolvedMatch = finalizeRatings(resolvedMatch)
   const prep = preparation(career)
-  const fatigue = 24 - prep.fitness * 2
+  const fatigue = 24 - prep.fitness * 2 + tacticalFatigue(tacticsOf(career))
   const progressed = { ...career, seasonVersion: 3, match: { ...resolvedMatch, cursor: next }, preparation: next === 9 ? { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.max(0, energy(career, p.id) - fatigue * minutesPlayed(resolvedMatch, p.id) / 90)])) } : prep }
   const settled = next === 9 ? settleAvailability(progressed) : progressed
   return commitCupDay(commitRound(settled))
 }
+

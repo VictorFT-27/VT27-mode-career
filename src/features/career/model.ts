@@ -1,10 +1,11 @@
-import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, leagueEndDay, leagueResultCount, type LeagueResult, type SeasonArchive, type Contract, type Finances, type TransferRecord, type BoardState, type PlayerAvailability, type CupState, type CupResult, type WorldState } from './types'
+import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, leagueEndDay, leagueResultCount, type LeagueResult, type SeasonArchive, type Contract, type Finances, type TransferRecord, type BoardState, type PlayerAvailability, type CupState, type CupResult, type WorldState, type TacticalPlan } from './types'
+import { defaultTactics, validTactics } from './tactics'
 import { clubs as realClubs, financesByClub, marketPlayers, playersByClub, type Player } from './realData'
 import { createCupStateForDay, cupClubIds, cupDays, externalCupClubs } from './cupData'
 import { youthPlayers } from './youthData'
 export type CareerMode = 'coach' | 'player' | 'director'
 export type Club = { id: string; name: string; initials: string; city: string; color: string; reputation: string; objective: string; description: string }
-export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; lineup?: string[]; roster?: string[]; contracts?: Record<string, Contract>; finances?: Finances; transfers?: TransferRecord[]; world?: WorldState; board?: BoardState; availability?: Record<string, PlayerAvailability>; day?: number; match?: Match; seasonVersion?: number; dataVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; cup?: CupState; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[] }
+export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; tactics?: TacticalPlan; lineup?: string[]; roster?: string[]; contracts?: Record<string, Contract>; finances?: Finances; transfers?: TransferRecord[]; world?: WorldState; board?: BoardState; availability?: Record<string, PlayerAvailability>; day?: number; match?: Match; seasonVersion?: number; dataVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; cup?: CupState; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[]; lastManagerMove?: { season: number; fromClubId: string; toClubId: string } }
 export const modes: { id: CareerMode; title: string; subtitle: string; number: string; description: string; available: boolean }[] = [
   { id: 'coach', title: 'Treinador', subtitle: 'À beira do campo', number: '01', description: 'Dê identidade ao time. Escolha seu clube, organize o elenco e prepare sua estratégia.', available: true },
   { id: 'player', title: 'Jogador', subtitle: 'Dentro das quatro linhas', number: '02', description: 'Construa sua trajetória em campo. Treinos, evolução e escolhas que definem uma carreira.', available: true },
@@ -31,7 +32,7 @@ export function lineupForRoster(roster: string[], clubId = 'flamengo') { const k
 export function createCareer(name: string, clubId: string): Career {
   const safeClubId = clubs.some(club => club.id === clubId) ? clubId : clubs[0].id
   const roster = defaultRosterFor(safeClubId)
-  return { mode: 'coach', name: name.trim(), clubId: safeClubId, formation: '4-3-3', dataVersion: 4, roster, lineup: defaultLineupFor(safeClubId), contracts: defaultContracts(safeClubId), finances: { ...defaultFinances[safeClubId] }, world: defaultWorld(1, safeClubId) }
+  return { mode: 'coach', name: name.trim(), clubId: safeClubId, formation: '4-3-3', tactics: { ...defaultTactics }, dataVersion: 4, roster, lineup: defaultLineupFor(safeClubId), contracts: defaultContracts(safeClubId), finances: { ...defaultFinances[safeClubId] }, world: defaultWorld(1, safeClubId) }
 }
 export function validLineup(value: unknown): value is string[] {
   return Array.isArray(value) && value.length === 11 && new Set(value).size === 11 && value.every(id => allPlayers.some(p => p.id === id)) && allPlayers.find(p => p.id === value[0])?.position === 'GOL' && value.slice(1).every(id => allPlayers.find(p => p.id === id)?.position !== 'GOL')
@@ -134,9 +135,10 @@ export function loadCareer(): Career | null {
     const lineup = validLineup(c.lineup) && c.lineup.every(id => safeRoster.includes(id)) ? c.lineup : lineupForRoster(safeRoster, career.clubId)
     const cup = active ? validCup(c.cup) ? c.cup : createCupStateForDay(seasonNumber, day, career.clubId) : undefined
     const world = normalizedWorld(c.world, seasonNumber, career.clubId, safeRoster)
-    return { ...career, dataVersion: 4, roster: safeRoster, contracts, finances, transfers, world, board, availability, seasonNumber, playerGrowth, archives, seasonVersion: 3, lineup, day, match, history, leagueActive: active, leagueResults: active && Array.isArray(c.leagueResults) ? c.leagueResults.filter(r => validLeagueResult(r) && (leagueDays[r.round - 1] < day || (leagueDays[r.round - 1] === day && match?.cursor === 9))).filter((r, i, all) => all.findIndex(item => item.round === r.round && item.home === r.home) === i) : [], cup, preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
+    return { ...career, dataVersion: 4, tactics: validTactics(c.tactics) ? c.tactics : { ...defaultTactics }, roster: safeRoster, contracts, finances, transfers, world, board, availability, seasonNumber, playerGrowth, archives, seasonVersion: 3, lineup, day, match, history, leagueActive: active, leagueResults: active && Array.isArray(c.leagueResults) ? c.leagueResults.filter(r => validLeagueResult(r) && (leagueDays[r.round - 1] < day || (leagueDays[r.round - 1] === day && match?.cursor === 9))).filter((r, i, all) => all.findIndex(item => item.round === r.round && item.home === r.home) === i) : [], cup, preparation: { energy, skill: bounded(prep?.skill, 3), fitness: bounded(prep?.fitness, 3), cohesion: bounded(prep?.cohesion, 6), sessions } }
   } catch { return null }
 }
 export function saveCareer(career: Career): boolean {
   try { localStorage.setItem(key, JSON.stringify(career)); return true } catch { return false }
 }
+

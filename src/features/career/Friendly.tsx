@@ -1,11 +1,12 @@
 import { leagueFixture } from './league'
 import { cupFixture } from './cup'
 import { cupDayInfo, cupStageNames } from './cupData'
-import { advanceDay, isMatchDay, progressMatch } from './season'
+import { advanceDay, averageEnergy, isMatchDay, progressMatch } from './season'
 import { useRef } from 'react'
-import { allClubs, clubs, type Career } from './model'
-import { lineupOf, player, score, simulate, strength } from './football'
+import { allClubs, clubs, rosterOf, type Career } from './model'
+import { fit, lineupOf, player, score, simulate, strength } from './football'
 import { unavailableLineup } from './availability'
+import { positions } from './types'
 import { MatchManagement } from './MatchManagement'
 export function Friendly({ career, onChange, onLineup, onSchedule }: { career: Career; onChange: (career: Career) => void; onLineup: () => void; onSchedule: () => void }) {
   const starting = useRef(false)
@@ -20,13 +21,16 @@ export function Friendly({ career, onChange, onLineup, onSchedule }: { career: C
   const finished = !!match && match.cursor === match.events.length
   const events = match?.events.slice(0, match.cursor) ?? []
   const blocked = unavailableLineup(career)
+  const starters = lineupOf(career)
+  const improvised = starters.filter((id, index) => fit(id, positions[career.formation][index]) < 1)
+  const reserves = rosterOf(career).filter(athlete => !starters.includes(athlete.id))
   if (!isMatchDay(career) && !match) return <section className="panel"><p className="eyebrow">CALENDÁRIO</p><h2>{(career.day ?? 1) > (career.leagueActive ? 120 : 7) ? 'Etapa concluída.' : 'Hoje é dia de preparação.'}</h2><p>Consulte sua agenda para treinar, recuperar os atletas ou rever os resultados.</p><button className="primary" onClick={onSchedule}>Abrir calendário →</button></section>
   const competition = cupInfo ? `COPA DO BRASIL / ${cupStageNames[cupInfo.stage].toUpperCase()}${cupInfo.stage === 9 ? '' : ` · JOGO ${cupInfo.leg}`}` : fixture && 'round' in fixture ? 'BRASILEIRÃO / RODADA ' + fixture.round : 'PRÉ-TEMPORADA / AMISTOSO ' + (Math.floor(((career.day ?? 1) - 1) / 3) + 1)
   const savedCupResult = cupInfo ? career.cup?.results.find(result => result.stage === cupInfo.stage && result.leg === cupInfo.leg && [result.home, result.away].includes(career.clubId)) : undefined
   const atHome = cup ? cup.atHome : savedCupResult ? savedCupResult.home === career.clubId : fixture && 'atHome' in fixture ? fixture.atHome : true
   return <div className="match-center"><div className="match-heading"><p className="eyebrow">{competition}</p><span className="badge active">{finished ? 'ENCERRADO' : match ? 'EM ANDAMENTO' : 'PRONTO PARA COMEÇAR'}</span></div>
     <section className="scoreboard" aria-label="Placar da partida"><div className="score-team"><span className="match-crest" style={{ color: club.color }}>{club.initials}</span><h2>{club.name}</h2><span>SEU TIME</span></div><div className="score-middle"><span className="match-clock">{finished ? 'FIM DE JOGO' : match ? `${match.cursor * 10}′` : 'PRÉ-JOGO'}</span><strong aria-label={`${club.name} ${total.home}, ${opponent.name} ${total.away}`}>{match ? `${total.home} : ${total.away}` : 'VS'}</strong><span>{cupInfo ? 'COPA DO BRASIL' : fixture ? 'BRASILEIRÃO' : 'AMISTOSO'} · {atHome ? 'EM CASA' : 'FORA DE CASA'}</span></div><div className="score-team"><span className="match-crest" style={{ color: opponent.color }}>{opponent.initials}</span><h2>{opponent.name}</h2><span>{!atHome ? 'MANDANTE' : 'VISITANTE'}</span></div></section>
-    {!match && <section className="panel kickoff-panel"><div><p className="eyebrow">ÚLTIMA CONVERSA NO VESTIÁRIO</p><h2>{blocked.length ? 'A escalação precisa de ajustes.' : 'É hora de testar suas ideias.'}</h2><p>{career.formation} · 11 titulares · Força {strength(lineupOf(career), career.formation, career)} contra um adversário de força 70.</p><p className="muted">{blocked.length ? `${blocked.map(id => player(id).name).join(', ')} não pode jogar. Troque os atletas indisponíveis antes da partida.` : 'Você acompanha nove lances no seu ritmo e pode ajustar a mentalidade e fazer até três substituições.'}</p></div><div className="match-actions"><button className="secondary" onClick={onLineup}>Revisar escalação</button><button className="primary" disabled={!!blocked.length} onClick={() => { if (starting.current || blocked.length) return; starting.current = true; onChange({ ...career, match: simulate(career) }) }}>{fixture ? 'Iniciar partida' : 'Iniciar amistoso'} <span aria-hidden="true">→</span></button></div></section>}
+    {!match && <section className="panel kickoff-panel preflight"><div><p className="eyebrow">REVISÃO PRÉ-JOGO</p><h2>{blocked.length ? 'A escalação precisa de ajustes.' : 'Seu time está pronto para entrar em campo.'}</h2><div className="preflight-grid"><span><small>FORMAÇÃO</small><strong>{career.formation}</strong></span><span><small>FORÇA</small><strong>{strength(starters, career.formation, career)}</strong></span><span><small>ENERGIA</small><strong>{averageEnergy(career)}%</strong></span><span><small>BANCO</small><strong>{reserves.length}</strong></span></div><p className={blocked.length || improvised.length ? 'preflight-warning' : 'preflight-ready'}>{blocked.length ? `${blocked.map(id => player(id).name).join(', ')} não pode jogar.` : improvised.length ? `${improvised.length} titular(es) está(ão) fora da posição ideal.` : 'Onze titulares disponíveis e nas posições corretas.'}</p><details className="preflight-roster"><summary>Conferir titulares e banco</summary><div><ul><li><strong>TITULARES</strong></li>{starters.map(id => <li key={id}>{player(id).position} · {player(id).name}</li>)}</ul><ul><li><strong>RESERVAS</strong></li>{reserves.map(athlete => <li key={athlete.id}>{athlete.position} · {athlete.name}</li>)}</ul></div></details><p className="muted">Durante a partida você pode ajustar a mentalidade e fazer até três substituições.</p></div><div className="match-actions"><button className="secondary" onClick={onLineup}>Revisar escalação e tática</button><button className="primary" disabled={!!blocked.length} onClick={() => { if (starting.current || blocked.length) return; starting.current = true; onChange({ ...career, match: simulate(career) }) }}>{fixture ? 'Confirmar e iniciar partida' : 'Confirmar e iniciar amistoso'} <span aria-hidden="true">→</span></button></div></section>}
     {match && !finished && <div className="match-controls"><div><strong>{match.cursor === 0 ? 'Bola no centro. Tudo pronto!' : 'O jogo continua.'}</strong><p>Avance para revelar o próximo lance. Você pode sair e retomar depois.</p></div><button className="primary" onClick={() => onChange(progressMatch(career, match.cursor + 1))}>Próximo lance <span aria-hidden="true">▶</span></button><button className="secondary" onClick={() => onChange(progressMatch(career, match.events.length))}>Ver resultado final</button></div>}
     {match && !finished && <MatchManagement career={career} onChange={onChange} />}
     <div className="match-live-status" role="status" aria-live="polite">{events.length > 0 && `${events.at(-1)!.minute} minutos. ${events.at(-1)!.text} Placar: ${total.home} a ${total.away}.`}</div>
@@ -35,3 +39,4 @@ export function Friendly({ career, onChange, onLineup, onSchedule }: { career: C
     {finished && <section className="next-day"><div><h2>Jogo concluído. Hora de recuperar.</h2><p>Desgaste, cartões e possíveis lesões já foram registrados. Avance para arquivar o resultado e cumprir uma partida das ausências anteriores.</p></div><button className="primary" onClick={() => { onChange(advanceDay(career)); onSchedule() }}>Avançar para o dia {(career.day ?? 1) + 1} →</button></section>}
   </div>
 }
+

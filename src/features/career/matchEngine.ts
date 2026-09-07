@@ -1,5 +1,6 @@
 import { allClubs, allPlayers, type Career } from './model'
 import { type Match, type MatchEvent, type Mentality } from './types'
+import { tacticalRisk } from './tactics'
 
 const plans: Record<Mentality, { chance: number; ownGoal: number; rivalGoal: number }> = {
   defensive: { chance: -.06, ownGoal: -.03, rivalGoal: -.1 },
@@ -11,9 +12,10 @@ export function resolveEvent(match: Match, index: number): MatchEvent {
   const existing = match.events[index]
   if (existing.sideRoll === undefined || existing.goalRoll === undefined || existing.playerRoll === undefined || index < match.cursor) return existing
   const plan = plans[match.mentality ?? 'balanced']
+  const risk = match.tactics ? tacticalRisk(match.tactics) : 0
   const homeChance = Math.max(.24, Math.min(.76, .5 + (match.strength - 70) / 100 + plan.chance))
   const side = existing.sideRoll < homeChance ? 'home' as const : 'away' as const
-  const goalChance = Math.max(.08, Math.min(.5, .3 + (side === 'home' ? plan.ownGoal : plan.rivalGoal)))
+  const goalChance = Math.max(.08, Math.min(.5, .3 + (side === 'home' ? plan.ownGoal + risk * .35 : plan.rivalGoal + risk)))
   const goal = existing.goalRoll < goalChance
   const id = match.lineup[1 + Math.min(9, Math.floor(existing.playerRoll * 10))]
   const assistId = existing.assistRoll === undefined ? undefined : match.lineup[1 + Math.min(9, Math.floor(existing.assistRoll * 10))]
@@ -66,3 +68,4 @@ export function finalizeRatings(match: Match): Match {
   })
   return { ...match, ratings, ratingsFinalized: true }
 }
+
