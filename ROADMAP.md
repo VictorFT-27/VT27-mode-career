@@ -17,23 +17,23 @@ chega à `main` após validação.
 - Brasileirão completo com 38 rodadas, turno e returno e 380 resultados por temporada.
 - Copa do Brasil com 32 clubes na fase nacional, mata-mata, pênaltis e premiações.
 - Central histórica com artilharia, assistências, recordes e conquistas.
+- Mundo persistente com transferências entre clubes, propostas ao treinador,
+  envelhecimento, aposentadorias e categorias de base.
 
-## Próximas quatro etapas principais
+## Próximas três etapas principais
 
-1. **Mundo persistente:** transferências entre clubes controlados pela máquina,
-   propostas, envelhecimento, categorias de base e aposentadorias.
-2. **Modo jogador:** criação do atleta, treinos individuais, titularidade, decisões em
+1. **Modo jogador:** criação do atleta, treinos individuais, titularidade, decisões em
    partidas, contratos, transferências e evolução pessoal.
-3. **Modo dirigente:** treinador, metas institucionais, estrutura, base, receitas,
+2. **Modo dirigente:** treinador, metas institucionais, estrutura, base, receitas,
    orçamento e planejamento plurianual.
-4. **Versão final:** identidade visual própria mais moderna, esportiva e dinâmica,
+3. **Versão final:** identidade visual própria mais moderna, esportiva e dinâmica,
    tutorial integrado, acessibilidade, equilíbrio, proteção do acesso pessoal,
    sincronização de save e bateria final de testes.
 
 ## Próximo trabalho recomendado
 
-A etapa 1 agora começa pelo mundo persistente: mercado entre clubes controlados
-pela máquina, propostas ao treinador e evolução de idade e categorias de base.
+A etapa 1 agora começa pelo modo jogador: criação do atleta, treinos individuais,
+disputa por titularidade, contratos, transferências e evolução pessoal.
 
 ## Dados do futebol
 

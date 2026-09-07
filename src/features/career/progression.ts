@@ -2,6 +2,7 @@ import { allPlayers, rosterOf, validLeagueResult, type Career } from './model'
 import { contractsOf } from './transfers'
 import { fixtureDays, leagueDays, leagueEndDay, leagueResultCount, type SeasonArchive } from './types'
 import { cupDays } from './cupData'
+import { advanceWorld } from './world'
 export function overall(career: Career, id: string) { return allPlayers.find(p => p.id === id)!.rating + (career.playerGrowth?.[id] ?? 0) }
 export function playerStats(career: Career) {
   const officialDays = [...leagueDays, ...cupDays]
@@ -27,5 +28,6 @@ export function renewSeason(career: Career): Career {
   const stats = playerStats(career)
   const archive: SeasonArchive = { number, clubId: career.clubId, results: structuredClone(career.leagueResults!), matches: structuredClone(career.history!), gains: Object.fromEntries(stats.map(p => [p.id, p.gain])), ...(career.cup ? { cup: structuredClone(career.cup) } : {}) }
   const gains = Object.fromEntries(stats.map(p => [p.id, p.growth + p.gain]))
-  return { ...career, seasonNumber: number + 1, archives: [...(career.archives ?? []), archive], playerGrowth: Object.fromEntries(allPlayers.map(player => [player.id, gains[player.id] ?? career.playerGrowth?.[player.id] ?? 0])), contracts: Object.fromEntries(Object.entries(contractsOf(career)).map(([id, contract]) => [id, { ...contract, seasons: Math.max(1, contract.seasons - 1) }])), board: undefined, availability: Object.fromEntries(rosterOf(career).map(player => [player.id, { injuredMatches: 0, suspensionMatches: 0, yellowCards: 0 }])), day: 1, match: undefined, history: [], leagueActive: false, leagueResults: [], cup: undefined, preparation: { energy: Object.fromEntries(rosterOf(career).map(p => [p.id, 100])), skill: 0, fitness: 0, cohesion: 0, sessions: [] } }
+  const next = { ...career, seasonNumber: number + 1, archives: [...(career.archives ?? []), archive], playerGrowth: Object.fromEntries(allPlayers.map(player => [player.id, gains[player.id] ?? career.playerGrowth?.[player.id] ?? 0])), contracts: contractsOf(career), board: undefined, day: 1, match: undefined, history: [], leagueActive: false, leagueResults: [], cup: undefined }
+  return advanceWorld(next, archive)
 }

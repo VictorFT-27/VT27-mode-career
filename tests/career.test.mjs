@@ -7,9 +7,9 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, types, progression, matchEngine, transfers, board, availability
+let model, football, season, league, cup, cupData, world, types, progression, matchEngine, transfers, board, availability
 try {
-  for (const name of ['types', 'realData', 'cupData', 'model', 'transfers', 'board', 'league', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
+  for (const name of ['types', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'transfers', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
     await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
@@ -22,6 +22,7 @@ try {
   league = await import(pathToFileURL(join(directory, 'league.mjs')))
   cup = await import(pathToFileURL(join(directory, 'cup.mjs')))
   cupData = await import(pathToFileURL(join(directory, 'cupData.mjs')))
+  world = await import(pathToFileURL(join(directory, 'world.mjs')))
   types = await import(pathToFileURL(join(directory, 'types.mjs')))
   model = await import(pathToFileURL(join(directory, 'model.mjs')))
   season = await import(pathToFileURL(join(directory, 'season.mjs')))
@@ -413,6 +414,35 @@ test('market purchase changes budget, wage bill, roster and persists through rel
   assert.ok(loaded.roster.includes(target.id))
   assert.equal(loaded.finances.budget, 34000)
   assert.equal(loaded.transfers.at(-1).kind, 'buy')
+  assert.equal(world.clubOf(loaded, target.id), loaded.clubId)
+})
+
+test('persistent world ages players, moves CPU squads, creates offers and promotes youth', () => {
+  const created = model.createCareer('Victor', 'flamengo')
+  assert.equal(Object.keys(created.world.playerClubs).length, 360)
+  assert.equal(created.world.prospects.length, 3)
+  const prospect = created.world.prospects[0]
+  const promoted = world.promoteProspect(created, prospect)
+  assert.ok(promoted.roster.includes(prospect))
+  assert.equal(world.clubOf(promoted, prospect), promoted.clubId)
+  assert.equal(promoted.contracts[prospect].seasons, 3)
+  const renewed = progression.renewSeason(finishSeason({ ...promoted, day: 1 }))
+  assert.equal(world.ageOf(renewed, 'fla1'), world.ageOf(promoted, 'fla1') + 1)
+  assert.equal(renewed.world.transfers.filter(item => item.season === 2).length, 19)
+  assert.equal(new Set(renewed.world.transfers.filter(item => item.season === 2).map(item => item.playerId)).size, 19)
+  assert.equal(renewed.world.managerOffers.length, 3)
+  assert.equal(renewed.world.prospects.length, 3)
+  assert.ok(renewed.world.retirements.length > 0)
+  const destination = renewed.world.managerOffers[0]
+  const switched = world.acceptManagerOffer(renewed, destination)
+  assert.equal(switched.clubId, destination)
+  assert.ok(switched.roster.length >= 16)
+  assert.ok(model.validLineup(switched.lineup))
+  assert.deepEqual(switched.world.managerOffers, [])
+  model.saveCareer(switched)
+  const loaded = model.loadCareer()
+  assert.equal(loaded.clubId, destination)
+  assert.equal(loaded.world.transfers.length, switched.world.transfers.length)
 })
 
 test('market respects squad, budget, wage and live-match safeguards', () => {

@@ -2,7 +2,7 @@
 
 O escopo completo e a ordem das próximas entregas estão em [ROADMAP.md](ROADMAP.md).
 
-## Temporada nacional e história (edição 13)
+## Temporada nacional, história e mundo persistente (edição 14)
 
 O pacote nacional traz os 20 participantes da Série A 2026, cada um com 18 atletas
 vinculados ao próprio clube: são 360 jogadores na base inicial. O mercado também
@@ -20,6 +20,11 @@ criadas para o equilíbrio do simulador e não representam dados oficiais.
 - A área Estatísticas registra gols, assistências, notas, recordes, títulos e conquistas
   ao longo de toda a carreira.
 - Uma carreira antiga entra na próxima fase disponível da Copa sem perder o progresso.
+- Na troca de temporada, os clubes controlados pelo jogo negociam atletas entre si.
+- Idades avançam, veteranos se aposentam e as mudanças permanecem no save.
+- Três jovens gerados pela base podem ser promovidos ao profissional por temporada.
+- O desempenho libera propostas de outros clubes; trocar de equipe preserva todo o
+  histórico, as conquistas e as temporadas anteriores do treinador.
 
 ## Mercado e contratos (edição 07)
 
