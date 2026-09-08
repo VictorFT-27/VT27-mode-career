@@ -7,21 +7,26 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let model, football, season, league, cup, cupData, world, scouting, negotiations, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
+let professionalMarket, employment, model, football, season, league, cup, cupData, world, scouting, negotiations, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
 try {
-  for (const name of ['types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'scouting', 'transfers', 'negotiations', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
+  for (const name of ['employment', 'professionalMarket', 'types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'scouting', 'transfers', 'negotiations', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
     const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } })
-    await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(\.\/\w+)'/g, "from '$1.mjs'"))
+    await writeFile(join(directory, `${name}.mjs`), outputText.replace(/from '(?:\.\/|\.\.\/director\/)(\w+)'/g, "from './$1.mjs'"))
   }
+  const competitionSource = await readFile(new URL('../src/features/player/playerCompetition.ts', import.meta.url), 'utf8')
+  const competitionOutput = ts.transpileModule(competitionSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
+  await writeFile(join(directory, 'playerCompetition.mjs'), competitionOutput.replace(/from '\.\.\/career\/(\w+)'/g, "from './$1.mjs'"))
   const playerSource = await readFile(new URL('../src/features/player/playerModel.ts', import.meta.url), 'utf8')
   const playerOutput = ts.transpileModule(playerSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
-  await writeFile(join(directory, 'playerModel.mjs'), playerOutput.replace("from '../career/realData'", "from './realData.mjs'"))
+  await writeFile(join(directory, 'playerModel.mjs'), playerOutput.replace("from '../career/realData'", "from './realData.mjs'").replace("from './playerCompetition'", "from './playerCompetition.mjs'"))
   playerModel = await import(pathToFileURL(join(directory, 'playerModel.mjs')))
   const directorSource = await readFile(new URL('../src/features/director/directorModel.ts', import.meta.url), 'utf8')
   const directorOutput = ts.transpileModule(directorSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
   await writeFile(join(directory, 'directorModel.mjs'), directorOutput.replace(/from '\.\.\/career\/(\w+)'/g, "from './$1.mjs'"))
   directorModel = await import(pathToFileURL(join(directory, 'directorModel.mjs')))
+  professionalMarket = await import(pathToFileURL(join(directory, 'professionalMarket.mjs')))
+  employment = await import(pathToFileURL(join(directory, 'employment.mjs')))
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
   matchEngine = await import(pathToFileURL(join(directory, 'matchEngine.mjs')))
   transfers = await import(pathToFileURL(join(directory, 'transfers.mjs')))
@@ -40,6 +45,101 @@ try {
   football = await import(pathToFileURL(join(directory, 'football.mjs')))
 } finally { await rm(directory, { recursive: true, force: true }) }
 const career = { mode: 'coach', name: 'Victor', clubId: 'flamengo', formation: '4-3-3', dataVersion: 2 }
+function acceptedEmployment(career, person, destination) {
+  const opened = professionalMarket.openEmployment(career, person, destination)
+  const deal = opened.employment.deals.at(-1)
+  return professionalMarket.offerEmployment(opened, deal.id, deal.asking)
+}
+test('employment validates terms and counters before allowing a signature', () => {
+  const player = playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 9)
+  const opened = professionalMarket.openEmployment(player, 'self', 'flamengo')
+  const deal = opened.employment.deals[0]
+  assert.equal(professionalMarket.signEmployment(opened, deal.id), opened)
+  assert.equal(employment.reviewEmployment(deal, { ...deal.terms, fee: -1 }), deal)
+  assert.equal(employment.reviewEmployment(deal, { ...deal.terms, wage: NaN }), deal)
+  assert.equal(employment.reviewEmployment(deal, { ...deal.terms, seasons: 99 }), deal)
+  const counter = employment.reviewEmployment(deal, { ...deal.terms, wage: 1 })
+  assert.equal(counter.status, 'countered')
+  assert.equal(employment.reviewEmployment(counter, counter.asking).status, 'accepted')
+})
+test('player employment moves immediately without resetting fixtures or personal stats', () => {
+  let player = playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 9)
+  player = playerModel.playPlayerRound(player, 'team')
+  const accepted = acceptedEmployment(player, 'self', 'flamengo')
+  const id = accepted.employment.deals.at(-1).id
+  const moved = professionalMarket.signEmployment(accepted, id)
+  assert.equal(moved.clubId, 'flamengo')
+  assert.equal(moved.round, player.round)
+  assert.deepEqual(moved.stats, player.stats)
+  assert.deepEqual(moved.leagueResults, player.leagueResults)
+  assert.equal(moved.contract.clubId, moved.clubId)
+  assert.equal(professionalMarket.signEmployment(moved, id), moved)
+  playerModel.savePlayerCareer(moved)
+  assert.equal(playerModel.loadPlayerCareer().employment.deals.at(-1).status, 'signed')
+})
+test('director buys and sells with negotiated salaries and rejects duplicate signatures', () => {
+  const director = { ...directorModel.createDirectorCareer('Victor', 'flamengo'), budget: 100000, wageLimit: 20000 }
+  const accepted = acceptedEmployment(director, 'pal10', 'flamengo')
+  const id = accepted.employment.deals.at(-1).id
+  const bought = professionalMarket.signEmployment(accepted, id)
+  assert.ok(bought.squad.includes('pal10'))
+  assert.equal(bought.budget, director.budget - accepted.employment.deals.at(-1).terms.fee)
+  assert.ok(directorModel.directorPayroll(bought) > directorModel.directorPayroll(director))
+  assert.equal(professionalMarket.signEmployment(bought, id), bought)
+  const sale = acceptedEmployment(bought, 'pal10', 'santos')
+  const sold = professionalMarket.signEmployment(sale, sale.employment.deals.at(-1).id)
+  assert.ok(!sold.squad.includes('pal10'))
+  assert.equal(professionalMarket.marketProfessionals(sold).find(p => p.id === 'pal10').clubId, 'santos')
+})
+test('coach hiring includes compensation and persists the negotiated wage', () => {
+  const director = { ...directorModel.createDirectorCareer('Victor', 'flamengo'), budget: 100000, wageLimit: 20000 }
+  const accepted = acceptedEmployment(director, 'c2', 'flamengo')
+  const signed = professionalMarket.signEmployment(accepted, accepted.employment.deals.at(-1).id)
+  assert.equal(signed.coach.id, 'c2')
+  assert.equal(signed.coach.salary, accepted.employment.deals.at(-1).terms.wage)
+  assert.equal(signed.budget, director.budget - director.coach.salary * 6 - accepted.employment.deals.at(-1).terms.fee)
+  const poor = { ...accepted, budget: 0 }
+  assert.equal(professionalMarket.signEmployment(poor, poor.employment.deals.at(-1).id).coach.id, director.coach.id)
+})
+test('director job changes preserve the old club project when returning', () => {
+  let director = directorModel.createDirectorCareer('Victor', 'flamengo')
+  director = directorModel.upgradeStructure(director, 'academy')
+  let accepted = acceptedEmployment(director, 'self', 'santos')
+  const moved = professionalMarket.signEmployment(accepted, accepted.employment.deals.at(-1).id)
+  assert.equal(moved.clubId, 'santos')
+  assert.ok(moved.squad.every(id => id.startsWith('san')))
+  accepted = acceptedEmployment(moved, 'self', 'flamengo')
+  const returned = professionalMarket.signEmployment(accepted, accepted.employment.deals.at(-1).id)
+  assert.equal(returned.structures.academy, director.structures.academy)
+})
+test('employment interest is generated once per period and preserves pending negotiations', () => {
+  const player = { ...playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 9), round: 6 }
+  const next = professionalMarket.refreshEmployment(player)
+  assert.equal(next.employment.deals.length, 1)
+  assert.equal(professionalMarket.refreshEmployment(next), next)
+  const declined = professionalMarket.withdrawEmployment(next, next.employment.deals[0].id)
+  assert.equal(professionalMarket.refreshEmployment(declined).employment.deals.length, 1)
+})
+test('manager can move during the league and reload without losing previous matches', () => {
+  let coach = model.createCareer('Victor', 'flamengo')
+  for (let day = 1; day < 16; day++) {
+    if (day === 8) coach = league.startLeague(coach)
+    coach = season.isMatchDay(coach) ? season.progressMatch({ ...coach, match: football.simulate(coach, () => .2) }, 9) : season.train(coach, 'recovery')
+    coach = season.advanceDay(coach)
+  }
+  const destination = coach.history.find(h => h.day === 9).match.opponent
+  const accepted = acceptedEmployment(coach, 'self', destination)
+  const signed = professionalMarket.signEmployment(accepted, accepted.employment.deals.at(-1).id)
+  assert.equal(signed.clubId, destination)
+  assert.equal(signed.day, 16)
+  assert.deepEqual(signed.leagueResults, coach.leagueResults)
+  model.saveCareer(signed)
+  const loaded = model.loadCareer()
+  assert.equal(loaded.day, 16)
+  assert.equal(loaded.history.length, coach.history.length)
+  assert.equal(loaded.clubId, destination)
+  assert.equal(loaded.employment.deals.at(-1).status, 'signed')
+})
 let saved = null
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => saved, setItem: (_, value) => { saved = value } } })
 
@@ -694,19 +794,38 @@ test('individual training is limited to one session per round and develops attri
   assert.deepEqual(playerModel.trainPlayer(trained, 'physical'), trained)
 })
 
-test('twelve player rounds award experience, unlock offers and carry history into a transfer', () => {
+test('player dynamics create objectives, career decisions and recovery choices', () => {
+  let player = playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 9)
+  assert.equal(player.dynamics.morale, 70)
+  assert.ok(player.dynamics.objective.title)
+  for (let event = 0; player.round < 6 && event < 10; event++) player = playerModel.playPlayerRound(player, 'team')
+  assert.ok(player.dynamics.pendingDecision)
+  assert.equal(playerModel.playPlayerRound(player, 'bold'), player)
+  const decided = playerModel.resolvePlayerDecision(player, 'team')
+  assert.equal(decided.dynamics.pendingDecision, undefined)
+  assert.ok(decided.dynamics.moments.some(moment => moment.title === 'Convívio com o elenco'))
+  const tired = { ...decided, energy: 30, trainingCompleted: false }
+  assert.ok(playerModel.trainPlayer(tired, 'recovery').energy > tired.energy)
+})
+
+test('complete player season simulates 38 league rounds, cup, offers and transfer history', () => {
   let player = playerModel.createPlayerCareer('Victor', 'santos', 'ATA', 9)
   let started = false
-  for (let round = 0; round < 12; round++) {
-    player = playerModel.trainPlayer(player, round % 2 ? 'physical' : 'finishing')
-    player = playerModel.playPlayerRound(player, round % 3 === 0 ? 'bold' : 'team')
+  for (let event = 0; !player.seasonComplete && event < 50; event++) {
+    if (player.dynamics.pendingDecision) player = playerModel.resolvePlayerDecision(player, 'team')
+    player = playerModel.trainPlayer(player, event % 2 ? 'physical' : 'finishing')
+    player = playerModel.playPlayerRound(player, event % 3 === 0 ? 'bold' : 'team')
     started ||= player.matches.at(-1).role === 'starter'
   }
-  assert.equal(player.round, 12)
+  assert.equal(player.round, 38)
   assert.equal(player.seasonComplete, true)
-  assert.equal(player.matches.length, 12)
+  assert.ok(player.matches.length >= 39)
+  assert.equal(player.leagueResults.length, 380)
+  assert.ok(player.matches.some(match => match.competition === 'cup'))
+  assert.equal(player.teamEvolution.length, player.matches.length)
+  assert.ok(player.cup.eliminated || player.cup.champion)
   assert.ok(started)
-  assert.ok(player.stats.appearances >= 10)
+  assert.ok(player.stats.appearances > 12)
   assert.ok(player.offers.length >= 3)
   assert.ok(player.skillPoints > 0)
   const improved = playerModel.improvePlayer(player, 'shooting')
@@ -723,7 +842,7 @@ test('twelve player rounds award experience, unlock offers and carry history int
 
 test('a player can remain under contract without accepting a new offer', () => {
   let player = playerModel.createPlayerCareer('Victor', 'flamengo', 'MC', 10)
-  for (let round = 0; round < 12; round++) player = playerModel.playPlayerRound(player, 'safe')
+  for (let event = 0; !player.seasonComplete && event < 50; event++) { if (player.dynamics.pendingDecision) player = playerModel.resolvePlayerDecision(player, 'professional'); player = playerModel.playPlayerRound(player, 'safe') }
   const next = playerModel.stayUnderContract(player)
   assert.equal(next.clubId, 'flamengo')
   assert.equal(next.season, 2)
@@ -783,4 +902,3 @@ test('ten executive cycles close a season and preserve the multi-year project', 
   assert.equal(next.squad.length, director.squad.length)
   assert.equal(next.prospects.length, 3)
 })
-

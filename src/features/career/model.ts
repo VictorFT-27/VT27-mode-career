@@ -1,3 +1,4 @@
+import type { EmploymentState } from './employment'
 import { type Match, type Formation, type Preparation, positions, fixtureDays, leagueDays, leagueRounds, leagueEndDay, leagueResultCount, type LeagueResult, type SeasonArchive, type Contract, type Finances, type TransferRecord, type BoardState, type PlayerAvailability, type CupState, type CupResult, type WorldState, type TacticalPlan, type ScoutingState, type TransferDesk } from './types'
 import { defaultTactics, validTactics } from './tactics'
 import { clubs as realClubs, financesByClub, marketPlayers, playersByClub, type Player } from './realData'
@@ -5,7 +6,7 @@ import { createCupStateForDay, cupClubIds, cupDays, externalCupClubs } from './c
 import { youthPlayers } from './youthData'
 export type CareerMode = 'coach' | 'player' | 'director'
 export type Club = { id: string; name: string; initials: string; city: string; color: string; reputation: string; objective: string; description: string }
-export type Career = { mode: 'coach'; name: string; clubId: string; formation: Formation; tactics?: TacticalPlan; lineup?: string[]; roster?: string[]; contracts?: Record<string, Contract>; finances?: Finances; transfers?: TransferRecord[]; world?: WorldState; scouting?: ScoutingState; transferDesk?: TransferDesk; board?: BoardState; availability?: Record<string, PlayerAvailability>; day?: number; match?: Match; seasonVersion?: number; dataVersion?: number; preparation?: Preparation; history?: { day: number; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; cup?: CupState; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[]; lastManagerMove?: { season: number; fromClubId: string; toClubId: string } }
+export type Career = { employment?: EmploymentState; mode: 'coach'; name: string; clubId: string; formation: Formation; tactics?: TacticalPlan; lineup?: string[]; roster?: string[]; contracts?: Record<string, Contract>; finances?: Finances; transfers?: TransferRecord[]; world?: WorldState; scouting?: ScoutingState; transferDesk?: TransferDesk; board?: BoardState; availability?: Record<string, PlayerAvailability>; day?: number; match?: Match; seasonVersion?: number; dataVersion?: number; preparation?: Preparation; history?: { day: number; clubId?: string; match: Match }[]; leagueActive?: boolean; leagueResults?: LeagueResult[]; cup?: CupState; seasonNumber?: number; playerGrowth?: Record<string, number>; archives?: SeasonArchive[]; lastManagerMove?: { season: number; fromClubId: string; toClubId: string } }
 export const modes: { id: CareerMode; title: string; subtitle: string; number: string; description: string; available: boolean }[] = [
   { id: 'coach', title: 'Treinador', subtitle: 'À beira do campo', number: '01', description: 'Dê identidade ao time. Escolha seu clube, organize o elenco e prepare sua estratégia.', available: true },
   { id: 'player', title: 'Jogador', subtitle: 'Dentro das quatro linhas', number: '02', description: 'Construa sua trajetória em campo. Treinos, evolução e escolhas que definem uma carreira.', available: true },
@@ -57,7 +58,7 @@ function validCup(value: unknown): value is CupState { if (!value || typeof valu
 function validArchive(value: unknown): value is SeasonArchive {
   if (!value || typeof value !== 'object') return false
   const a = value as SeasonArchive
-  return Number.isSafeInteger(a.number) && a.number >= 1 && clubs.some(c => c.id === a.clubId) && Array.isArray(a.results) && a.results.length === leagueResultCount && a.results.every(validLeagueResult) && new Set(a.results.map(r => r.round + ':' + r.home)).size === leagueResultCount && Array.isArray(a.matches) && a.matches.length >= fixtureDays.length + leagueDays.length && a.matches.length <= fixtureDays.length + leagueDays.length + cupDays.length && a.matches.every(h => h && [...fixtureDays, ...leagueDays, ...cupDays].includes(h.day) && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== a.clubId) && new Set(a.matches.map(h => h.day)).size === a.matches.length && (a.cup === undefined || validCup(a.cup)) && !!a.gains && typeof a.gains === 'object' && Object.keys(a.gains).length >= 11 && Object.entries(a.gains).every(([id, gain]) => allPlayers.some(p => p.id === id) && Number.isInteger(gain) && gain >= 0 && gain <= 2)
+  return Number.isSafeInteger(a.number) && a.number >= 1 && clubs.some(c => c.id === a.clubId) && Array.isArray(a.results) && a.results.length === leagueResultCount && a.results.every(validLeagueResult) && new Set(a.results.map(r => r.round + ':' + r.home)).size === leagueResultCount && Array.isArray(a.matches) && a.matches.length >= fixtureDays.length + leagueDays.length && a.matches.length <= fixtureDays.length + leagueDays.length + cupDays.length && a.matches.every(h => h && [...fixtureDays, ...leagueDays, ...cupDays].includes(h.day) && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== (h.clubId ?? a.clubId)) && new Set(a.matches.map(h => h.day)).size === a.matches.length && (a.cup === undefined || validCup(a.cup)) && !!a.gains && typeof a.gains === 'object' && Object.keys(a.gains).length >= 11 && Object.entries(a.gains).every(([id, gain]) => allPlayers.some(p => p.id === id) && Number.isInteger(gain) && gain >= 0 && gain <= 2)
 }
 function normalizedWorld(value: unknown, season: number, clubId: string, roster: string[]): WorldState {
   const base = defaultWorld(season, clubId)
@@ -108,7 +109,7 @@ export function loadCareer(): Career | null {
     const requiredCalendar = active ? [...fixtureDays, ...leagueDays] : fixtureDays
     const calendar = active ? [...requiredCalendar, ...cupDays] : fixtureDays
     let day = !upgradedCompetition && Number.isInteger(c.day) && c.day! >= 1 && c.day! <= (active ? leagueEndDay : 8) ? c.day! : 1
-    let history = !upgradedCompetition && Array.isArray(c.history) ? c.history.filter(h => h && calendar.includes(h.day) && h.day < day && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== c.clubId).filter((h, i, all) => all.findIndex(item => item.day === h.day) === i) : []
+    let history = !upgradedCompetition && Array.isArray(c.history) ? c.history.filter(h => h && calendar.includes(h.day) && h.day < day && validMatch(h.match) && h.match.cursor === 9 && h.match.opponent !== (h.clubId ?? c.clubId)).filter((h, i, all) => all.findIndex(item => item.day === h.day) === i) : []
     if (c.seasonVersion !== 3 && day === 2 && match?.cursor === 9) { history = [{ day: 1, match }]; match = undefined }
     if (!calendar.includes(day)) match = undefined
     // Recover incomplete calendar saves at their first missing fixture.
@@ -141,4 +142,3 @@ export function loadCareer(): Career | null {
 export function saveCareer(career: Career): boolean {
   try { localStorage.setItem(key, JSON.stringify(career)); return true } catch { return false }
 }
-

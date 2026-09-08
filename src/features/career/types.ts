@@ -39,7 +39,7 @@ export type CupStage = 5 | 6 | 7 | 8 | 9
 export type CupTie = { stage: CupStage; home: string; away: string }
 export type CupResult = { stage: CupStage; leg: 1 | 2; home: string; away: string; homeGoals: number; awayGoals: number; penaltiesWinner?: string }
 export type CupState = { stage: CupStage; ties: CupTie[]; results: CupResult[]; eliminated: boolean; prize: number; champion?: string }
-export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; match: Match }[]; gains: Record<string, number>; cup?: CupState }
+export type SeasonArchive = { number: number; clubId: string; results: LeagueResult[]; matches: { day: number; clubId?: string; match: Match }[]; gains: Record<string, number>; cup?: CupState }
 export type Contract = { seasons: number; wage: number; value: number }
 export type Finances = { budget: number; wageLimit: number }
 export type TransferRecord = { season: number; playerId: string; kind: 'buy' | 'sell' | 'renew'; amount: number }
@@ -58,4 +58,3 @@ export type BoardStatus = 'secure' | 'stable' | 'pressure' | 'dismissed'
 export type BoardReview = { round: number; delta: number; confidence: number; rank: number; result: 'win' | 'draw' | 'loss'; reason: string }
 export type BoardState = { confidence: number; lastRound: number; status: BoardStatus; history: BoardReview[] }
 export type PlayerAvailability = { injuredMatches: number; suspensionMatches: number; yellowCards: number }
-

@@ -50,7 +50,7 @@ export function advanceDay(career: Career): Career {
   const day = career.day ?? 1; const prep = preparation(career); const completedMatch = career.match?.cursor === 9
   if (career.board?.status === 'dismissed' || day >= (career.leagueActive ? leagueEndDay : 8) || (career.match || isMatchDay(career) ? !completedMatch : !prep.sessions.some(s => s.day === day))) return career
   career = commitRound(career); career = commitCupDay(career)
-  const history = career.match ? [...(career.history ?? []).filter(h => h.day !== day), { day, match: career.match }] : career.history ?? []
+  const history = career.match ? [...(career.history ?? []).filter(h => h.day !== day), { day, clubId: career.clubId, match: career.match }] : career.history ?? []
   return { ...career, seasonVersion: 4, day: day + 1, history, match: undefined, preparation: { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.min(100, energy(career, p.id) + 8)])), skill: clamp(prep.skill - 1), fitness: clamp(prep.fitness - 1), cohesion: clamp(prep.cohesion - 1), sharpness: clamp((prep.sharpness ?? 50) - (completedMatch ? 0 : 1)), morale: clamp((prep.morale ?? 60) - (completedMatch ? 0 : 1)), workload: clamp((prep.workload ?? 25) - 8) } }
 }
 export function progressMatch(career: Career, cursor: number): Career {
@@ -62,4 +62,3 @@ export function progressMatch(career: Career, cursor: number): Career {
   const progressed = { ...career, seasonVersion: 4, match: { ...resolvedMatch, cursor: next }, preparation: next === 9 ? { ...prep, energy: Object.fromEntries(rosterOf(career).map(p => [p.id, Math.max(0, energy(career, p.id) - fatigue * minutesPlayed(resolvedMatch, p.id) / 90)])), workload: clamp((prep.workload ?? 25) + 12), sharpness: clamp((prep.sharpness ?? 50) + 3), morale: clamp((prep.morale ?? 60) + 1) } : prep }
   return commitCupDay(commitRound(next === 9 ? settleAvailability(progressed) : progressed))
 }
-

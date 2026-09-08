@@ -1,3 +1,5 @@
+import { refreshEmployment } from '../features/career/professionalMarket'
+import { ProfessionalMarket } from '../features/career/EmploymentPanel'
 import { SeasonReview } from '../features/career/SeasonReview'
 import { Market } from '../features/career/Market'
 import { BoardPanel } from '../features/career/BoardPanel'
@@ -50,21 +52,24 @@ export default function App() {
   useEffect(() => { heading.current?.focus() }, [view, tab])
   const club = clubs.find(c => c.id === (view === 'office' ? career?.clubId : clubId)) ?? clubs[0]
   function update(next: Career) {
+    next = refreshEmployment(next)
     setCareer(next)
     if (isDismissed(next)) setTab('board')
     setNotice(saveCareer(next) ? 'Carreira salva neste navegador.' : 'Não foi possível salvar neste navegador. Seu progresso ficará apenas nesta sessão.')
   }
   function updatePlayer(next: PlayerCareerState) {
+    next = refreshEmployment(next)
     setPlayerCareer(next)
     setNotice(savePlayerCareer(next) ? 'Carreira de jogador salva neste navegador.' : 'Não foi possível salvar neste navegador.')
   }
   function updateDirector(next: DirectorCareerState) {
+    next = refreshEmployment(next)
     setDirectorCareer(next)
     setNotice(saveDirectorCareer(next) ? 'Carreira de dirigente salva neste navegador.' : 'Não foi possível salvar neste navegador.')
   }
   if (locked) return <AccessGate onUnlock={() => setLocked(false)} />
   return <div className="app-shell">
-    <header className="topbar"><button className="brand" onClick={() => setView('modes')} aria-label="VT27 — início">VT<span>27</span><small>MODE CAREER</small></button><div className="top-meta"><span className="live-dot" /> {view === 'player-office' ? 'CARREIRA DE JOGADOR' : view === 'director-office' ? 'CARREIRA DE DIRIGENTE' : career?.leagueActive ? 'TEMPORADA NACIONAL' : 'PRÉ-TEMPORADA'} {career && <button className="help-button" onClick={() => { setView('office'); setTab('settings') }}>SAVE</button>}<button className="help-button" onClick={() => setTutorial(true)}>COMO JOGAR</button><span className="edition">VERSÃO 1.0</span></div></header>
+    <header className="topbar"><button className="brand" onClick={() => setView('modes')} aria-label="VT27 — início">VT<span>27</span><small>MODE CAREER</small></button><div className="top-meta"><span className="live-dot" /> {view === 'player-office' ? 'CARREIRA DE JOGADOR' : view === 'director-office' ? 'CARREIRA DE DIRIGENTE' : career?.leagueActive ? 'TEMPORADA NACIONAL' : 'PRÉ-TEMPORADA'} {career && <button className="help-button" onClick={() => { setView('office'); setTab('settings') }}>SAVE</button>}<button className="help-button" onClick={() => setTutorial(true)}>COMO JOGAR</button><span className="edition">EDIÇÃO 23</span></div></header>
     {tutorial && <Tutorial onClose={() => setTutorial(false)} />}
     {view === 'modes' && <main className="selection">
       <div className="intro"><p className="eyebrow">SEU JOGO. SUA HISTÓRIA.</p><h1 tabIndex={-1} ref={heading}>O futebol tem muitos caminhos.<br /><em>Qual vai ser o seu?</em></h1><p>Três maneiras de viver o mesmo universo. Escolha de onde começa a sua história.</p></div>
@@ -92,6 +97,7 @@ export default function App() {
       {tab === 'cup' && <CupPanel career={career} onMatch={() => setTab('match')} onSchedule={() => setTab('schedule')} />}
       {tab === 'statistics' && <StatisticsPanel career={career} />}
       {tab === 'world' && <WorldPanel career={career} onChange={update} onAccepted={() => setTab('overview')} />}
+      {tab === 'market' && <ProfessionalMarket career={career} onChange={update} />}
       {tab === 'market' && <Market career={career} onChange={update} />}
       {tab === 'medical' && <MedicalPanel career={career} onLineup={() => setTab('tactics')} />}
       {tab === 'board' && <BoardPanel career={career} onExit={() => setView('modes')} />}
@@ -101,4 +107,3 @@ export default function App() {
     </main></div>}
   </div>
 }
-

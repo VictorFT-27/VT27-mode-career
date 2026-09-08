@@ -282,3 +282,16 @@ arquivo, bloqueio de transição antecipada e limites de evolução.
 - Lances revelados permanecem imutáveis ao trocar a postura.
 - Partidas antigas continuam válidas com postura equilibrada e sem substituições.
 
+## Edição 23 — mercado de profissionais
+
+- Treinador: abra **Mercado** e escolha **Minha carreira** para negociar uma mudança de clube durante a temporada.
+- Jogador: abra **Contrato** para consultar propostas periódicas ou escolher um destino e abrir uma conversa.
+- Dirigente: abra **Negociações** para contratar atletas/técnicos, vender atletas ou negociar seu próprio cargo.
+- Edite compensação, salário mensal, duração e multa do novo contrato. Envie a proposta, revise a contraproposta e assine em uma etapa separada.
+- Cobrir a multa atual resolve a compensação ao clube; os termos pessoais ainda precisam ser aceitos.
+- Contratar um treinador inclui a rescisão do atual. Compras respeitam orçamento, folha e tamanho do elenco.
+- As partidas antigas guardam o clube representado. Mudanças do modo jogador preservam rodadas, tabela e números pessoais; projetos do dirigente são guardados ao sair.
+- Os três modos compartilham as regras de negociação, mas continuam com saves independentes. Valores são estimativas do simulador.
+- As Edições 21 e 22 incluem a Liga de 38 rodadas, Copa, Vestiário, metas, moral, forma, recuperação e decisões da carreira de jogador.
+
+Verificação: 62 testes automatizados e compilação de produção. Próximas entregas: Edição 24 (fichas e comparação) e Edição 25 (encerramento ilustrado).

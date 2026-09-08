@@ -1,0 +1,12 @@
+import { resolvePlayerDecision, type PlayerCareer, type PlayerDecisionChoice } from './playerModel'
+
+const choices: { id: PlayerDecisionChoice; title: string; text: string }[] = [
+  { id: 'professional', title: 'Trabalho individual', text: 'Priorize confiança do treinador e recuperação física.' },
+  { id: 'team', title: 'Convívio com o elenco', text: 'Fortaleça moral e relacionamento no vestiário.' },
+  { id: 'supporters', title: 'Encontro com a torcida', text: 'Aumente moral e sua conexão com o clube.' },
+]
+
+export function PlayerLife({ career, onChange }: { career: PlayerCareer; onChange: (career: PlayerCareer) => void }) {
+  const dynamics = career.dynamics
+  return <section className="player-life"><div className="season-stats"><article><span>MORAL</span><strong>{dynamics.morale}</strong><small>Impacta confiança e constância</small></article><article><span>FORMA</span><strong>{dynamics.form}</strong><small>Calculada pelas atuações recentes</small></article><article><span>CONDIÇÃO</span><strong>{dynamics.injuryMatches ? `Lesão · ${dynamics.injuryMatches}J` : dynamics.suspensionMatches ? `Suspenso · ${dynamics.suspensionMatches}J` : 'Disponível'}</strong><small>{dynamics.yellowCards}/3 cartões</small></article><article><span>METAS CUMPRIDAS</span><strong>{dynamics.objectivesCompleted}</strong><small>na temporada atual</small></article></div>{dynamics.pendingDecision && <section className="panel"><div className="section-heading"><div><p className="eyebrow">DECISÃO OBRIGATÓRIA</p><h2>{dynamics.pendingDecision.title}</h2></div><span className="badge active">NOVO</span></div><p>{dynamics.pendingDecision.text}</p><div className="approach-grid">{choices.map(choice => <button key={choice.id} onClick={() => onChange(resolvePlayerDecision(career, choice.id))}><strong>{choice.title}</strong><span>{choice.text}</span></button>)}</div></section>}<section className="panel"><div className="section-heading"><div><p className="eyebrow">DIÁRIO DA CARREIRA</p><h2>O que está acontecendo</h2></div><span className="muted">Atuações, decisões e condição física.</span></div><div className="world-feed">{dynamics.moments.length ? dynamics.moments.slice().reverse().map((moment, index) => <article key={`${moment.event}-${index}`}><span>{moment.tone === 'positive' ? '✓' : moment.tone === 'warning' ? '!' : '•'}</span><div><strong>{moment.title}</strong><small>{moment.text}</small></div><b>J{moment.event}</b></article>) : <p className="muted">Os primeiros acontecimentos serão registrados depois da estreia.</p>}</div></section></section>
+}

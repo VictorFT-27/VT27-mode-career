@@ -1,3 +1,4 @@
+import type { EmploymentState } from '../career/employment'
 import { boardTarget } from '../career/league'
 import { clubs, financesByClub, playersByClub, type Player } from '../career/realData'
 import { youthPlayers } from '../career/youthData'
@@ -7,7 +8,7 @@ export type CoachStyle = 'balanced' | 'attacking' | 'defensive' | 'development'
 export type Coach = { id: string; name: string; style: CoachStyle; quality: number; salary: number }
 export type DirectorCycle = { season: number; cycle: number; opponentId: string; result: 'win' | 'draw' | 'loss'; goalsFor: number; goalsAgainst: number; income: number; expenses: number; balance: number; rank: number }
 export type DirectorSeason = { season: number; clubId: string; rank: number; points: number; balance: number; boardConfidence: number; promoted: number }
-export type DirectorCareer = { version: 1; mode: 'director'; name: string; clubId: string; season: number; cycle: number; budget: number; wageLimit: number; reputation: number; supporterMood: number; boardConfidence: number; points: number; coach: Coach; coachConfidence: number; structures: Record<DirectorStructure, number>; squad: string[]; prospects: string[]; market: string[]; promoted: number; revenue: number; expenses: number; cycles: DirectorCycle[]; seasons: DirectorSeason[]; seasonComplete: boolean }
+export type DirectorCareer = { employment?: EmploymentState; clubProjects?: Record<string, Omit<DirectorCareer, 'clubProjects' | 'employment'>>; version: 1; mode: 'director'; name: string; clubId: string; season: number; cycle: number; budget: number; wageLimit: number; reputation: number; supporterMood: number; boardConfidence: number; points: number; coach: Coach; coachConfidence: number; structures: Record<DirectorStructure, number>; squad: string[]; prospects: string[]; market: string[]; promoted: number; revenue: number; expenses: number; cycles: DirectorCycle[]; seasons: DirectorSeason[]; seasonComplete: boolean }
 
 export const coachCandidates: Coach[] = [
   { id: 'c1', name: 'Alexandre Torres', style: 'balanced', quality: 74, salary: 260 },
@@ -27,7 +28,7 @@ const allRealPlayers = Object.values(playersByClub).flat()
 export function directorPlayer(id: string): Player | undefined { return [...allRealPlayers, ...youthPlayers].find(player => player.id === id) }
 export function directorSquad(career: DirectorCareer) { return career.squad.map(directorPlayer).filter((player): player is Player => !!player) }
 export function directorRating(career: DirectorCareer, playerId: string) { const player = directorPlayer(playerId); return player ? Math.min(99, player.rating + (playerId.startsWith('base') && career.squad.includes(playerId) ? Math.floor((career.structures.academy - 1) / 2) : 0)) : 0 }
-export function directorPayroll(career: DirectorCareer) { return directorSquad(career).reduce((sum, player) => sum + player.wage, 0) + career.coach.salary }
+export function directorPayroll(career: DirectorCareer) { return directorSquad(career).reduce((sum, player) => sum + (career.employment?.contracts[player.id]?.wage ?? player.wage), 0) + career.coach.salary }
 export function squadAverage(career: DirectorCareer) { return career.squad.length ? Math.round(career.squad.reduce((sum, id) => sum + directorRating(career, id), 0) / career.squad.length) : 0 }
 export function estimatedRank(career: Pick<DirectorCareer, 'points' | 'reputation'>) { return clamp(20 - Math.floor(career.points * .62 + career.reputation / 22), 1, 20) }
 function selections(season: number, clubId: string, source: Player[], count: number) { const start = (season * 7 + clubs.findIndex(club => club.id === clubId) * 11) % source.length; return Array.from({ length: source.length }, (_, index) => source[(start + index * 5) % source.length]).filter((player, index, items) => items.findIndex(item => item.id === player.id) === index).slice(0, count).map(player => player.id) }
