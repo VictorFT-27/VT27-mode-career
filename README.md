@@ -295,3 +295,12 @@ arquivo, bloqueio de transição antecipada e limites de evolução.
 - As Edições 21 e 22 incluem a Liga de 38 rodadas, Copa, Vestiário, metas, moral, forma, recuperação e decisões da carreira de jogador.
 
 Verificação: 62 testes automatizados e compilação de produção. Próximas entregas: Edição 24 (fichas e comparação) e Edição 25 (encerramento ilustrado).
+
+## Edição 24 — fichas e comparação
+
+No modo treinador, abra Mercado → Atletas; no dirigente, Negociações → Atletas.
+Pesquise por nome ou clube, filtre posição, clube e compensação máxima, e ordene por nível, idade, compensação ou salário. Abra até duas fichas para comparar contrato, nível e custo estimado do primeiro ano. A negociação pode ser iniciada diretamente na ficha.
+
+Estatísticas e condição médica aparecem apenas quando disponíveis no save do treinador. Idades são as cadastradas na base, sem envelhecimento simulado. Valores são estimativas do jogo; custo anual inclui compensação e 12 salários, sem somar multa. Não são inventadas estatísticas para clubes não acompanhados.
+
+Próxima entrega: Edição 25 — encerramento ilustrado da temporada.

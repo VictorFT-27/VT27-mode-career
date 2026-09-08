@@ -77,3 +77,20 @@
 
 /* Continuous professional market */
 .professional-market{display:grid;gap:18px;margin-bottom:24px;min-width:0}.professional-market>label{display:grid;gap:8px;max-width:540px}.professional-market input,.professional-market select{background:#11191b;color:#f4f7f2;border:1px solid #ffffff38;padding:12px;min-width:0;max-width:100%}.professional-market>.table-wrap{max-height:440px;overflow:auto}.professional-market .deal-editor{border-top:1px solid #42f5d755;background:#ffffff04}.professional-market .season-stats strong{font-size:clamp(1rem,2vw,1.5rem)}.professional-market .deal-actions{gap:12px}.professional-market .terms-grid{align-items:start}.professional-market .deal-editor h3{overflow-wrap:anywhere}@media(max-width:600px){.professional-market .terms-grid{grid-template-columns:1fr}.professional-market{padding:16px}.professional-market .deal-editor{padding:16px}}
+
+/* Edition 24: player dossiers */
+.player-dossier { margin-block: 2rem; }
+.dossier-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+.dossier-filters label { display: grid; gap: .5rem; }
+.dossier-comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 2rem; margin-block: 1.5rem; }
+.dossier-card { min-width: 0; border-top: 2px solid #94f8bd; padding-top: 1rem; }
+.dossier-card header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.dossier-card h3 { font-size: clamp(1.25rem, 3vw, 2rem); margin-block: .4rem; }
+.dossier-rating { font-size: 3.5rem; color: #94f8bd; font-variant-numeric: tabular-nums; }
+.dossier-card dl { margin-block: 1rem; }
+.dossier-card dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; padding-block: .7rem; border-bottom: 1px solid #ffffff18; }
+.dossier-card dd { margin: 0; font-weight: 700; }
+.dossier-verdict { border-left: 3px solid #94f8bd; padding: 1rem; }
+.dossier-selected { background: #94f8bd12; }
+.player-dossier caption { text-align: left; padding-block: .8rem; }
+.player-dossier button:focus-visible { outline: 2px solid #94f8bd; outline-offset: 3px; }
