@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
@@ -7,7 +10,7 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const directory = await mkdtemp(join(tmpdir(), 'vt27-tests-'))
-let professionalMarket, employment, model, football, season, league, cup, cupData, world, scouting, negotiations, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
+let SeasonFinale, professionalMarket, employment, model, football, season, league, cup, cupData, world, scouting, negotiations, types, tactics, progression, matchEngine, transfers, board, availability, playerModel, directorModel
 try {
   for (const name of ['employment', 'professionalMarket', 'types', 'tactics', 'realData', 'youthData', 'cupData', 'model', 'board', 'league', 'world', 'scouting', 'transfers', 'negotiations', 'cup', 'matchEngine', 'availability', 'season', 'progression', 'football']) {
     const source = await readFile(new URL(`../src/features/career/${name}.ts`, import.meta.url), 'utf8')
@@ -25,6 +28,11 @@ try {
   const directorOutput = ts.transpileModule(directorSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
   await writeFile(join(directory, 'directorModel.mjs'), directorOutput.replace(/from '\.\.\/career\/(\w+)'/g, "from './$1.mjs'"))
   directorModel = await import(pathToFileURL(join(directory, 'directorModel.mjs')))
+  const require = createRequire(import.meta.url)
+  const finaleSource = await readFile(new URL('../src/features/career/SeasonFinale.tsx', import.meta.url), 'utf8')
+  const finaleOutput = ts.transpileModule(finaleSource, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX } }).outputText
+  await writeFile(join(directory, 'SeasonFinale.mjs'), finaleOutput.replace(/from '(?:\.\/|\.\.\/player\/|\.\.\/director\/)(\w+)'/g, "from './$1.mjs'").replace(/from ["'](react(?:\/jsx-runtime)?)["']/g, (_, name) => `from '${pathToFileURL(require.resolve(name)).href}'`))
+  SeasonFinale = (await import(pathToFileURL(join(directory, 'SeasonFinale.mjs')))).SeasonFinale
   professionalMarket = await import(pathToFileURL(join(directory, 'professionalMarket.mjs')))
   employment = await import(pathToFileURL(join(directory, 'employment.mjs')))
   progression = await import(pathToFileURL(join(directory, 'progression.mjs')))
@@ -901,4 +909,28 @@ test('ten executive cycles close a season and preserve the multi-year project', 
   assert.equal(next.structures.training, director.structures.training)
   assert.equal(next.squad.length, director.squad.length)
   assert.equal(next.prospects.length, 3)
+})
+
+
+test('season retrospective renders empty careers without awarding a championship or mutating saves', () => {
+  const careers = [model.createCareer('Victor', 'flamengo'), playerModel.createPlayerCareer('Victor', 'flamengo', 'ATA', 9), directorModel.createDirectorCareer('Victor', 'flamengo')]
+  for (const career of careers) {
+    const before = JSON.stringify(career)
+    const html = renderToStaticMarkup(createElement(SeasonFinale, { career }))
+    assert.ok(html.includes('Balanço parcial'))
+    assert.ok(!html.includes('CAMPEÃO NACIONAL'))
+    assert.equal(JSON.stringify(career), before)
+  }
+})
+
+test('director final retrospective identifies projected results and preserves the archive on renewal', () => {
+  let career = directorModel.createDirectorCareer('Victor', 'bahia')
+  for (let i = 0; i < 10; i++) career = directorModel.advanceDirectorCycle(career)
+  const html = renderToStaticMarkup(createElement(SeasonFinale, { career }))
+  assert.ok(html.includes('Temporada encerrada'))
+  assert.ok(html.includes('PROJEÇÃO ESPORTIVA'))
+  assert.ok(!html.includes('CAMPEÃO NACIONAL'))
+  const next = directorModel.renewDirectorSeason(career)
+  assert.equal(next.seasons[0].points, career.points)
+  assert.ok(renderToStaticMarkup(createElement(SeasonFinale, { career: next })).includes('Balanço parcial'))
 })

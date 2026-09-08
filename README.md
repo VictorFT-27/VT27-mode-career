@@ -304,3 +304,13 @@ Pesquise por nome ou clube, filtre posição, clube e compensação máxima, e o
 Estatísticas e condição médica aparecem apenas quando disponíveis no save do treinador. Idades são as cadastradas na base, sem envelhecimento simulado. Valores são estimativas do jogo; custo anual inclui compensação e 12 salários, sem somar multa. Não são inventadas estatísticas para clubes não acompanhados.
 
 Próxima entrega: Edição 25 — encerramento ilustrado da temporada.
+
+## Edição 25 — retrospectiva da temporada
+
+- Treinador: Temporada. Jogador: Histórico (abre automaticamente ao encerrar a campanha). Dirigente: Planejamento.
+- Balanço parcial durante o ano e retrospectiva final com posição, conquistas, destaques e objetivos com progresso. Títulos aparecem somente quando registrados nas competições; o modo dirigente identifica sua posição como projeção.
+- Jogador: participações em gols, minutos, nota, prêmios e nível em relação ao último encerramento. Treinador: destaque em gols, campanha e evolução prevista. Dirigente: receitas, despesas, conselho, torcida e base.
+- A próxima temporada exige confirmação; as transições existentes preservam o arquivo da carreira. Nenhuma premiação ou ganho é aplicado por abrir a retrospectiva.
+- Layout responsivo com campo estilizado, placar, faixas de conquistas e navegação entre destaques e metas.
+
+O plano de edições 21–25 está entregue. Novas funcionalidades e ajustes de balanceamento podem ser tratados como uma próxima fase. Os modos permanecem com saves independentes e as limitações documentadas do simulador continuam aplicáveis.

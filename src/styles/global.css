@@ -94,3 +94,33 @@
 .dossier-selected { background: #94f8bd12; }
 .player-dossier caption { text-align: left; padding-block: .8rem; }
 .player-dossier button:focus-visible { outline: 2px solid #94f8bd; outline-offset: 3px; }
+
+/* Edition 25: season retrospective */
+.season-finale { --finale-accent: #b8ff65; margin-bottom: 2rem; overflow: hidden; border-bottom: 1px solid #ffffff20; }
+.finale-hero { isolation: isolate; position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2rem; padding: clamp(1.5rem, 4vw, 3.5rem); min-height: 300px; background: radial-gradient(ellipse at 80% 0%, #2d654b90, transparent 65%), #0a1717; }
+.finale-copy, .finale-rank { z-index: 1; }
+.finale-copy h2 { max-width: 650px; font-size: clamp(2rem, 4.5vw, 4rem); line-height: 1.02; letter-spacing: -.045em; margin-block: 1rem; text-wrap: balance; }
+.finale-status { display: inline-block; border-left: 3px solid var(--finale-accent); padding-left: .8rem; margin-top: 1rem; }
+.finale-rank { text-align: center; display: grid; gap: .5rem; }
+.finale-rank > span, .finale-rank small { font-size: .7rem; letter-spacing: .12em; }
+.finale-rank > strong { font-size: clamp(4rem, 8vw, 7rem); line-height: 1; color: var(--finale-accent); font-style: italic; }
+.finale-pitch { position: absolute; inset: 18% -8% -35% 40%; transform: rotate(-20deg); border: 2px solid #b8ff6518; z-index: 0; pointer-events: none; }
+.finale-pitch i { position: absolute; top: 0; bottom: 0; left: 50%; border-left: 2px solid #b8ff6518; }
+.finale-pitch b { position: absolute; width: 120px; height: 120px; border: 2px solid #b8ff6518; border-radius: 50%; top: calc(50% - 60px); left: calc(50% - 60px); }
+.finale-ribbon { display: flex; flex-wrap: wrap; gap: 1rem 2rem; padding: 1rem 1.5rem; color: var(--finale-accent); border-bottom: 1px solid #b8ff6530; background: #13251b; font-weight: 700; }
+.finale-switch { display: flex; flex-wrap: wrap; gap: .6rem; padding-block: 1.5rem; }
+.finale-switch button { padding: .8rem 1rem; background: transparent; color: #e6f4ed; border: 1px solid #ffffff30; border-radius: 30px; cursor: pointer; }
+.finale-switch button[aria-pressed=true] { background: var(--finale-accent); color: #10200d; border-color: var(--finale-accent); }
+.finale-switch button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+.finale-highlights { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2rem; padding-block: 1rem; }
+.finale-highlights article { position: relative; padding-block: 1rem; border-top: 1px solid #ffffff25; }
+.finale-highlights article > strong { display: block; font-size: clamp(1.6rem, 3vw, 2.7rem); line-height: 1.15; overflow-wrap: anywhere; }
+.finale-index { float: right; color: #b8ff6560; font-size: 1.3rem; }
+.finale-goals { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.5rem; }
+.finale-goals article { padding: 1rem 0; border-top: 1px solid #ffffff25; }
+.finale-goals article > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.finale-goals h3 { margin: .4rem 0; }
+.finale-goals span { font-size: .8rem; color: var(--finale-accent); }
+.finale-goals progress { width: 100%; height: 8px; margin-top: 1rem; accent-color: var(--finale-accent); }
+.finale-footnote { font-size: .85rem; color: #bacdc3; padding-block: 1rem; }
+@media(max-width: 700px) { .finale-hero { grid-template-columns: 1fr; } .finale-rank { text-align: left; } .finale-highlights, .finale-goals { grid-template-columns: 1fr; gap: .6rem; } }
