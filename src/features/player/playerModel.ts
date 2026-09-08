@@ -11,10 +11,12 @@ export type PlayerObjective = { kind: 'rating' | 'contribution' | 'result' | 'mi
 export type PlayerMoment = { event: number; title: string; text: string; tone: 'positive' | 'neutral' | 'warning' }
 export type PlayerDecision = { id: string; title: string; text: string }
 export type PlayerDynamics = { morale: number; form: number; injuryMatches: number; suspensionMatches: number; yellowCards: number; objective: PlayerObjective; objectivesCompleted: number; moments: PlayerMoment[]; pendingDecision?: PlayerDecision }
-export type PlayerMatch = { season: number; round: number; clubId: string; opponentId: string; competition: 'league' | 'cup'; cupStage?: number; atHome: boolean; role: 'starter' | 'bench' | 'out'; absenceReason?: string; objectiveCompleted: boolean; minutes: number; goals: number; assists: number; rating: number; teamGoals: number; opponentGoals: number; approach: MatchApproach }
-export type PlayerOffer = { clubId: string; seasons: number; wage: number; role: string }
+export type PlayerMatchHighlight = { minute: number; title: string; text: string; tone: 'positive' | 'neutral' | 'warning' }
+export type PlayerMatch = { season: number; round: number; clubId: string; opponentId: string; competition: 'league' | 'cup'; cupStage?: number; atHome: boolean; role: 'starter' | 'bench' | 'out'; absenceReason?: string; objectiveCompleted: boolean; minutes: number; goals: number; assists: number; rating: number; teamGoals: number; opponentGoals: number; approach: MatchApproach; highlights?: PlayerMatchHighlight[] }
+export type PlayerOffer = { clubId: string; seasons: number; wage: number; role: string; status?: 'received' | 'countered' | 'accepted' | 'rejected'; note?: string }
+export type PlayerTrainingReport = { round: number; kind: PlayerTraining; focus: string; primary: PlayerAttribute; secondary?: PlayerAttribute; energyDelta: number; sharpnessDelta: number; trustDelta: number; attributeDelta: number; text: string }
 export type PlayerSeason = { season: number; clubId: string; overall: number; stats: PlayerStats; leagueRank?: number; leaguePoints?: number; cupResult?: string }
-export type PlayerCareer = { employment?: EmploymentState; version: 3; mode: 'player'; name: string; clubId: string; position: PlayerPosition; shirtNumber: number; age: number; season: number; round: number; attributes: Record<PlayerAttribute, number>; bonus: number; experience: number; skillPoints: number; energy: number; sharpness: number; trust: number; trainingCompleted: boolean; contract: { clubId: string; seasons: number; wage: number }; stats: PlayerStats; allTime: PlayerStats; matches: PlayerMatch[]; seasons: PlayerSeason[]; offers: PlayerOffer[]; seasonComplete: boolean; dynamics: PlayerDynamics } & PlayerCompetition
+export type PlayerCareer = { employment?: EmploymentState; version: 3; mode: 'player'; name: string; clubId: string; position: PlayerPosition; shirtNumber: number; age: number; season: number; round: number; attributes: Record<PlayerAttribute, number>; bonus: number; experience: number; skillPoints: number; energy: number; sharpness: number; trust: number; trainingCompleted: boolean; trainingReports?: PlayerTrainingReport[]; contract: { clubId: string; seasons: number; wage: number }; stats: PlayerStats; allTime: PlayerStats; matches: PlayerMatch[]; seasons: PlayerSeason[]; offers: PlayerOffer[]; seasonComplete: boolean; dynamics: PlayerDynamics } & PlayerCompetition
 
 export const playerPositions: { id: PlayerPosition; title: string; description: string }[] = [
   { id: 'GOL', title: 'Goleiro', description: 'Reflexo, segurança e liderança da última linha.' },
@@ -44,6 +46,7 @@ const weights: Record<PlayerPosition, Record<PlayerAttribute, number>> = {
 }
 const storageKey = 'vt27.player.v1'
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+const clubName = (id: string) => clubs.find(club => club.id === id)?.name ?? 'seu time'
 const objectiveFor = (position: PlayerPosition, event: number): PlayerObjective => event % 4 === 0 ? { kind: 'result', title: 'Ajude o time a pontuar', target: 1 } : event % 4 === 1 && !['GOL', 'ZAG'].includes(position) ? { kind: 'contribution', title: 'Marque ou dê uma assistência', target: 1 } : event % 4 === 2 ? { kind: 'rating', title: 'Alcance nota 7,0', target: 7 } : { kind: 'minutes', title: 'Atue por pelo menos 60 minutos', target: 60 }
 const defaultDynamics = (position: PlayerPosition): PlayerDynamics => ({ morale: 70, form: 50, injuryMatches: 0, suspensionMatches: 0, yellowCards: 0, objective: objectiveFor(position, 0), objectivesCompleted: 0, moments: [] })
 export function playerOverall(career: Pick<PlayerCareer, 'attributes' | 'position' | 'bonus'>) { return clamp(Math.round((Object.keys(career.attributes) as PlayerAttribute[]).reduce((sum, key) => sum + career.attributes[key] * weights[career.position][key], 0)) + career.bonus, 40, 99) }
@@ -52,21 +55,31 @@ export function averageRating(stats: PlayerStats) { return stats.appearances ? s
 export function createPlayerCareer(name: string, clubId: string, position: PlayerPosition, shirtNumber: number): PlayerCareer {
   const safeClub = clubs.some(club => club.id === clubId) ? clubId : clubs[0].id
   const safePosition = playerPositions.some(item => item.id === position) ? position : 'ATA'
-  return { version: 3, mode: 'player', name: name.trim(), clubId: safeClub, position: safePosition, shirtNumber: clamp(Math.round(shirtNumber), 1, 99), age: 17, season: 1, round: 0, attributes: { ...bases[safePosition] }, bonus: 0, experience: 0, skillPoints: 0, energy: 100, sharpness: 45, trust: 38, trainingCompleted: false, contract: { clubId: safeClub, seasons: 3, wage: 28 }, stats: emptyStats(), allTime: emptyStats(), matches: [], seasons: [], offers: [], seasonComplete: false, dynamics: defaultDynamics(safePosition), ...createPlayerCompetition(1) }
+  return { version: 3, mode: 'player', name: name.trim(), clubId: safeClub, position: safePosition, shirtNumber: clamp(Math.round(shirtNumber), 1, 99), age: 17, season: 1, round: 0, attributes: { ...bases[safePosition] }, bonus: 0, experience: 0, skillPoints: 0, energy: 100, sharpness: 45, trust: 38, trainingCompleted: false, trainingReports: [], contract: { clubId: safeClub, seasons: 3, wage: 28 }, stats: emptyStats(), allTime: emptyStats(), matches: [], seasons: [], offers: [], seasonComplete: false, dynamics: defaultDynamics(safePosition), ...createPlayerCompetition(1) }
 }
 export function trainPlayer(career: PlayerCareer, kind: PlayerTraining): PlayerCareer {
   if (career.trainingCompleted || career.seasonComplete || career.energy < 20) return career
-  if (kind === 'recovery') return { ...career, energy: clamp(career.energy + 24, 0, 100), sharpness: clamp(career.sharpness - 2, 0, 100), dynamics: { ...career.dynamics, morale: clamp(career.dynamics.morale + 3, 0, 100) }, trainingCompleted: true }
+  const report = (data: PlayerTrainingReport) => [...(career.trainingReports ?? []), data].slice(-12)
+  if (kind === 'recovery') return { ...career, energy: clamp(career.energy + 24, 0, 100), sharpness: clamp(career.sharpness - 2, 0, 100), dynamics: { ...career.dynamics, morale: clamp(career.dynamics.morale + 3, 0, 100) }, trainingCompleted: true, trainingReports: report({ round: career.round + 1, kind, focus: 'Recuperação', primary: 'physical', energyDelta: 24, sharpnessDelta: -2, trustDelta: 0, attributeDelta: 0, text: 'Recuperou energia, melhorou a moral e reduziu a carga antes do próximo jogo.' }) }
   const effects: Record<Exclude<PlayerTraining, 'recovery'>, [PlayerAttribute, PlayerAttribute, number]> = { physical: ['pace', 'physical', 17], finishing: ['shooting', 'dribbling', 15], creation: ['passing', 'dribbling', 14], defensive: ['defending', 'physical', 15] }
   const [primary, secondary, cost] = effects[kind]
-  return { ...career, attributes: { ...career.attributes, [primary]: clamp(career.attributes[primary] + 1, 1, 99), [secondary]: clamp(career.attributes[secondary] + (career.round % 2), 1, 99) }, energy: clamp(career.energy - cost, 0, 100), sharpness: clamp(career.sharpness + 9, 0, 100), trust: clamp(career.trust + 5, 0, 100), trainingCompleted: true }
+  const secondaryGain = career.round % 2
+  return { ...career, attributes: { ...career.attributes, [primary]: clamp(career.attributes[primary] + 1, 1, 99), [secondary]: clamp(career.attributes[secondary] + secondaryGain, 1, 99) }, energy: clamp(career.energy - cost, 0, 100), sharpness: clamp(career.sharpness + 9, 0, 100), trust: clamp(career.trust + 5, 0, 100), trainingCompleted: true, trainingReports: report({ round: career.round + 1, kind, focus: playerAttributeLabels[primary], primary, secondary, energyDelta: -cost, sharpnessDelta: 9, trustDelta: 5, attributeDelta: 1 + secondaryGain, text: `Ganhou ritmo, confiança e evolução direta em ${playerAttributeLabels[primary].toLowerCase()}.` }) }
+}
+export function playerMarketValue(career: Pick<PlayerCareer, 'age' | 'stats' | 'position' | 'attributes' | 'bonus' | 'trust'>) {
+  const overall = playerOverall(career)
+  const positionBonus = ['ATA', 'PE', 'MC'].includes(career.position) ? 1.12 : career.position === 'GOL' ? .92 : 1
+  const ageCurve = career.age <= 20 ? 1.25 : career.age <= 24 ? 1.15 : career.age <= 29 ? 1 : career.age <= 33 ? .78 : .55
+  const output = 1 + Math.min(.35, (career.stats.goals + career.stats.assists) * .015 + averageRating(career.stats) * .018)
+  return Math.max(1800, Math.round((overall - 52) * (overall - 52) * 24 * positionBonus * ageCurve * output / 100) * 100)
 }
 function makeOffers(career: PlayerCareer, overall: number): PlayerOffer[] {
   const others = clubs.filter(club => club.id !== career.clubId)
   const start = (career.season * 5 + overall + career.stats.goals * 3 + career.stats.assists) % others.length
   const count = overall >= 72 || averageRating(career.stats) >= 7.4 ? 3 : 2
-  const external = Array.from({ length: count }, (_, index) => others[(start + index * 6) % others.length]).map((club, index) => ({ clubId: club.id, seasons: 3, wage: Math.round(35 + overall * .8 + index * 8), role: index === 0 ? 'Disputará a titularidade' : 'Projeto de longo prazo' }))
-  return [{ clubId: career.clubId, seasons: 3, wage: Math.round(32 + overall * .72), role: 'Renovação com o clube atual' }, ...external].filter((offer, index, offers) => offers.findIndex(item => item.clubId === offer.clubId) === index)
+  const baseWage = Math.round(Math.max(45, overall * 1.35 + averageRating(career.stats) * 7 + (career.stats.goals + career.stats.assists) * 2))
+  const external = Array.from({ length: count }, (_, index) => others[(start + index * 6) % others.length]).map((club, index) => ({ clubId: club.id, seasons: index === 0 ? 4 : 3, wage: baseWage + index * 18 + (clubs.findIndex(item => item.id === club.id) < 8 ? 18 : 0), role: index === 0 ? 'Disputará titularidade com bônus por metas' : index === 1 ? 'Projeto de crescimento e minutos reais' : 'Contrato de rotação com plano de evolução', status: 'received' as const, note: 'Proposta recebida ao fim da temporada.' }))
+  return [{ clubId: career.clubId, seasons: 3, wage: Math.round(baseWage * .92), role: 'Renovação com o clube atual', status: 'received' as const, note: 'Seu clube quer manter você no elenco.' }, ...external].filter((offer, index, offers) => offers.findIndex(item => item.clubId === offer.clubId) === index)
 }
 export function playPlayerRound(career: PlayerCareer, approach: MatchApproach): PlayerCareer {
   const fixture = nextPlayerFixture(career)
@@ -79,13 +92,24 @@ export function playPlayerRound(career: PlayerCareer, approach: MatchApproach): 
   const energyPenalty = Math.max(0, 65 - career.energy) / 22
   const rating = minutes ? clamp(Math.round((5.7 + (overall - 60) * .045 + career.sharpness * .009 + approachBonus - energyPenalty + (seed % 5) * .13) * 10) / 10, 5, 10) : 0
   const attack = ['PE', 'ATA'].includes(career.position) ? 3 : ['MC', 'VOL'].includes(career.position) ? 2 : 1
-  const goals = minutes && career.position !== 'GOL' && seed % 8 < attack + (approach === 'bold' ? 1 : 0) ? 1 + Number(rating >= 9 && seed % 3 === 0) : 0
-  const assists = minutes && career.position !== 'GOL' && (seed + 3) % 9 < (approach === 'team' ? 4 : 2) ? 1 : 0
-  const teamGoals = clamp((seed + overall + goals * 2 + assists) % 4, goals, 5)
+  const baseTeamGoals = Math.floor(((seed % 19) / 19) * 3.2 + (overall - 62) / 26 + (fixture.atHome ? .25 : 0))
+  const contributionChance = minutes && career.position !== 'GOL' ? attack + (approach === 'bold' ? 1 : approach === 'team' ? .6 : 0) + Math.max(0, rating - 6.7) : 0
+  let teamGoals = clamp(baseTeamGoals + Number(contributionChance > 3.2 && seed % 5 === 0), 0, 5)
+  let goals = minutes && career.position !== 'GOL' && teamGoals > 0 && seed % 10 < contributionChance ? 1 + Number(teamGoals > 1 && rating >= 9 && seed % 7 === 0) : 0
+  goals = clamp(goals, 0, teamGoals)
+  let assists = minutes && career.position !== 'GOL' && teamGoals - goals > 0 && (seed + 3) % 10 < (approach === 'team' ? contributionChance + 1.5 : contributionChance) ? 1 : 0
+  assists = clamp(assists, 0, Math.max(0, teamGoals - goals))
   const opponentGoals = (seed + 2 + career.round) % 4
+  if (goals + assists > teamGoals) teamGoals = goals + assists
   const objectiveCompleted = career.dynamics.objective.kind === 'rating' ? rating >= career.dynamics.objective.target : career.dynamics.objective.kind === 'contribution' ? goals + assists >= career.dynamics.objective.target : career.dynamics.objective.kind === 'result' ? teamGoals >= opponentGoals : minutes >= career.dynamics.objective.target
   const absenceReason = career.dynamics.injuryMatches ? 'Lesionado' : career.dynamics.suspensionMatches ? 'Suspenso' : undefined
-  const match: PlayerMatch = { season: career.season, round: fixture.round, clubId: career.clubId, opponentId: fixture.opponentId, competition: fixture.competition, cupStage: fixture.stage, atHome: fixture.atHome, role, absenceReason, objectiveCompleted, minutes, goals, assists, rating, teamGoals, opponentGoals, approach }
+  const highlights: PlayerMatchHighlight[] = minutes ? [
+    { minute: 12 + seed % 18, title: role === 'starter' ? 'Primeiros movimentos' : 'Aquecimento intenso', text: role === 'starter' ? 'Você entrou no plano inicial e participou da saída de bola.' : 'O banco começou a se mexer cedo, com chance real de entrada.', tone: 'neutral' as const },
+    ...(goals ? [{ minute: 35 + seed % 37, title: 'Gol seu', text: `Finalização decisiva para o ${clubName(career.clubId)}.`, tone: 'positive' as const }] : []),
+    ...(assists ? [{ minute: 48 + seed % 31, title: 'Assistência confirmada', text: 'Passe certo para um companheiro concluir a jogada em gol.', tone: 'positive' as const }] : []),
+    { minute: 75 + seed % 14, title: objectiveCompleted ? 'Meta cumprida' : 'Última pressão', text: objectiveCompleted ? 'A comissão marcou o objetivo individual como concluído.' : 'O jogo terminou pedindo mais impacto no próximo compromisso.', tone: (objectiveCompleted ? 'positive' : 'warning') as PlayerMatchHighlight['tone'] },
+  ].sort((a, b) => a.minute - b.minute) : [{ minute: 90, title: absenceReason ?? 'Fora dos planos', text: absenceReason ? 'Você acompanhou a partida sem atuar.' : 'O treinador manteve você fora da lista desta rodada.', tone: 'warning' as const }]
+  const match: PlayerMatch = { season: career.season, round: fixture.round, clubId: career.clubId, opponentId: fixture.opponentId, competition: fixture.competition, cupStage: fixture.stage, atHome: fixture.atHome, role, absenceReason, objectiveCompleted, minutes, goals, assists, rating, teamGoals, opponentGoals, approach, highlights }
   const appeared = Number(minutes > 0)
   const stats = { appearances: career.stats.appearances + appeared, starts: career.stats.starts + Number(role === 'starter'), minutes: career.stats.minutes + minutes, goals: career.stats.goals + goals, assists: career.stats.assists + assists, ratingTotal: career.stats.ratingTotal + rating, motm: career.stats.motm + Number(rating >= 8.5) }
   const earnedExperience = minutes ? Math.round(rating * 7 + goals * 18 + assists * 12) : 12
@@ -117,10 +141,17 @@ function beginNextSeason(career: PlayerCareer, clubId: string, contract: PlayerC
 }
 export function acceptPlayerOffer(career: PlayerCareer, clubId: string): PlayerCareer { const offer = career.offers.find(item => item.clubId === clubId); return career.seasonComplete && offer ? beginNextSeason(career, clubId, { clubId, seasons: offer.seasons, wage: offer.wage }) : career }
 export function stayUnderContract(career: PlayerCareer): PlayerCareer { return career.seasonComplete && career.contract.seasons > 1 ? beginNextSeason(career, career.clubId, { ...career.contract, seasons: career.contract.seasons - 1 }) : career }
+export function rejectPlayerOffer(career: PlayerCareer, clubId: string): PlayerCareer { return { ...career, offers: career.offers.map(offer => offer.clubId === clubId ? { ...offer, status: 'rejected', note: 'Proposta recusada. O clube saiu da mesa por enquanto.' } : offer) } }
+export function counterPlayerOffer(career: PlayerCareer, clubId: string, wage: number, seasons: number): PlayerCareer {
+  const offer = career.offers.find(item => item.clubId === clubId)
+  if (!career.seasonComplete || !offer || offer.status === 'rejected' || !Number.isSafeInteger(wage) || !Number.isInteger(seasons) || seasons < 1 || seasons > 5) return career
+  const maxWage = Math.round(offer.wage * (offer.clubId === career.clubId ? 1.18 : 1.28))
+  return { ...career, offers: career.offers.map(item => item.clubId === clubId ? wage <= maxWage ? { ...item, wage, seasons, status: 'accepted', note: 'Contraproposta aceita. Agora falta assinar.' } : { ...item, wage: maxWage, seasons, status: 'countered', note: `O clube não chegou nesse valor e respondeu com R$ ${maxWage} mil/mês.` } : item) }
+}
 export function savePlayerCareer(career: PlayerCareer) { try { localStorage.setItem(storageKey, JSON.stringify(career)); return true } catch { return false } }
 function migratePlayerCareer(raw: any): PlayerCareer {
   const overall = playerOverall(raw)
-  return { ...raw, ...createPlayerCompetition((raw.season ?? 1) + 1), version: 3, season: (raw.season ?? 1) + 1, age: (raw.age ?? 17) + 1, round: 0, stats: emptyStats(), allTime: accumulated(raw.allTime ?? emptyStats(), raw.stats ?? emptyStats()), seasons: [...(raw.seasons ?? []), { season: raw.season ?? 1, clubId: raw.clubId, overall, stats: raw.stats ?? emptyStats(), cupResult: 'Formato clássico de 12 rodadas' }], dynamics: defaultDynamics(raw.position), trainingCompleted: false, seasonComplete: false, offers: [], matches: (raw.matches ?? []).map((match: PlayerMatch) => ({ ...match, competition: 'league', atHome: true, objectiveCompleted: false })) }
+  return { ...raw, ...createPlayerCompetition((raw.season ?? 1) + 1), version: 3, season: (raw.season ?? 1) + 1, age: (raw.age ?? 17) + 1, round: 0, stats: emptyStats(), allTime: accumulated(raw.allTime ?? emptyStats(), raw.stats ?? emptyStats()), seasons: [...(raw.seasons ?? []), { season: raw.season ?? 1, clubId: raw.clubId, overall, stats: raw.stats ?? emptyStats(), cupResult: 'Formato clássico de 12 rodadas' }], dynamics: defaultDynamics(raw.position), trainingReports: [], trainingCompleted: false, seasonComplete: false, offers: [], matches: (raw.matches ?? []).map((match: PlayerMatch) => ({ ...match, competition: 'league', atHome: true, objectiveCompleted: false })) }
 }
 export function loadPlayerCareer(): PlayerCareer | null {
   try { const raw: any = JSON.parse(localStorage.getItem(storageKey) ?? 'null'); if (!raw || typeof raw !== 'object') return null; const value: PlayerCareer = raw.version === 1 ? migratePlayerCareer(raw) : raw.version === 2 ? { ...raw, version: 3, dynamics: defaultDynamics(raw.position), matches: (raw.matches ?? []).map((match: PlayerMatch) => ({ ...match, objectiveCompleted: false })) } : raw; if (value.version !== 3 || value.mode !== 'player' || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 40 || !clubs.some(club => club.id === value.clubId) || !playerPositions.some(position => position.id === value.position) || !Number.isInteger(value.shirtNumber) || value.shirtNumber < 1 || value.shirtNumber > 99 || !Number.isInteger(value.season) || value.season < 1 || !Number.isInteger(value.round) || value.round < 0 || value.round > playerSeasonLength || !Array.isArray(value.leagueResults) || !value.cup || !Array.isArray(value.teamEvolution) || !value.dynamics) return null; return value } catch { return null }
